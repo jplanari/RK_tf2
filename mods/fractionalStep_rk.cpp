@@ -18,75 +18,66 @@
 // This module introduces some functions to help solving the Navier-Stokes
 // equations. For the moment only incompressible fluids have been considered.
 
-
-TF_Func void SetUp_Momentum_Staggered(tf2::Simulation &sim)
+TF_Func void SetUp_Momentum_RK(tf2::Simulation &sim)
 {
-    
-    SetUp_Momentum_Collocated(sim);
-
-    const bool hasInterpCF = tf2::hasMatrix(sim, "Interp_CF");
-    const bool hasInterpFC = tf2::hasMatrix(sim, "Interp_FC");
-
-    if (hasInterpCF && hasInterpFC) return;
+    // This function exists basically to initialize all the fields required by
+    // the official FSM, with the correct number of components, i.e., one
+    // component per simulation.
+    TF_uAssert((sim.meshes.size() == 1) xor tf2::hasSMesh(sim), "not yet implemented for multiple meshes");
+    TF_uAssert(tf2::hasField(sim, "ux_N"), "required field ux_N not defined");
+    TF_uAssert(tf2::hasField(sim, "uy_N"), "required field uy_N not defined");
+    TF_uAssert(tf2::hasField(sim, "uz_N"), "required field uz_N not defined");
+    TF_uAssert(tf2::hasField(sim, "Omega_C"), "required field Omega_C not defined");
 
     const auto &meshName = tf2::getMeshName(sim);
     const auto &msuf     = tf2::meshSuffix(meshName);
     const auto &cells    = "Cells"+msuf;
     const auto &faces    = "Faces"+msuf;
+    const auto &nodes    = "Nodes"+msuf;
 
     const auto smesh = tf2::hasSMesh(sim);
-    const auto &op   = tf2::getOfficialPath();
-    const auto &pMod = op+(smesh? "/smeshPatterns.so" : "/patterns.so");
-    const auto &kMod = op+(smesh? "/smeshInterpolators.so" : "/interpolators.so");
-    if (not hasInterpCF && not hasInterpFC)
+   
+    const auto &pMod = smesh? "smeshPatterns.so" : "patterns.so";
+const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
+    
+    if (not tf2::hasMatrix(sim, "Id_NC"))
     {
-        tf2::newMatrix(sim, "Interp_CF", "p_CF_FirstNb", pMod, "k_Interp_CF_VW_ZB_FirstNb", kMod, meshName);
-        tf2::newMatrix(sim, "Interp_FC", "p_FC_FirstNb", pMod, "k_Interp_FC_VW_ZB_FirstNb", kMod, meshName);
+        tf2::newMatrix(sim, "Id_NC", "pId_NC", pMod, "kId_NC", kMod, meshName);
     }
-    else if (not hasInterpFC)
+    if (not tf2::hasMatrix(sim, "Id_CN"))
     {
-        const auto &mesh = tf2::getUMesh(sim);
-        tf2::Field InvOmega_C(sim, 1, cells);
-        std::vector<double> bc(tf2::getNumEntries(InvOmega_C));
-        calcInvVolumes(mesh, bc.data());
-        tf2::oper_setData(InvOmega_C, bc.data());
-
-        tf2::Field Omega_F(sim, 1, faces);
-        std::vector<double> bf(tf2::getNumEntries(Omega_F));
-        calcStaggeredVolumes(mesh, bf.data());
-        tf2::oper_setData(Omega_F, bf.data());
-
-        const auto &ICF = tf2::getMatrix(sim, "Interp_CF");
-        auto mt = tf2::ll_transpose(ICF.csr, tf2::getDomainSize(sim, cells));
-        auto p1 = tf2::ll_prodDiag(mt, Omega_F.array);
-        auto p2 = tf2::ll_prodDiag(InvOmega_C.array, p1);
-        tf2::newMatrix(sim, "Interp_FC", faces, cells, p2);
+        tf2::newMatrix(sim, "Id_CN", "pId_CN", pMod, "kId_CN", kMod, meshName);
     }
-    else
-    {
-        const auto &mesh = tf2::getUMesh(sim);
-        tf2::Field Omega_F(sim, 1, faces);
-        std::vector<double> bf(tf2::getNumEntries(Omega_F));
-        calcStaggeredVolumes(mesh, bf.data());
-        tf2::oper_setData(Omega_F, bf.data());
-        tf2::Field InvOmega_F(sim, 1, faces);
-        tf2::oper_setConst(InvOmega_F, 1.0);
-        tf2::oper_div(InvOmega_F, Omega_F);
 
-        tf2::Field InvOmega_C(sim, 1, cells);
-        std::vector<double> bc(tf2::getNumEntries(InvOmega_C));
-        calcInvVolumes(mesh, bc.data());
-        tf2::oper_setData(InvOmega_C, bc.data());
-        tf2::Field Omega_C(sim, 1, cells);
-        tf2::oper_setConst(Omega_C, 1.0);
-        tf2::oper_div(Omega_C, InvOmega_C);
+    const auto dim = tf2::getField(sim, "ux_N").dim;
 
-        const auto &IFC = tf2::getMatrix(sim, "Interp_FC");
-        auto mt = tf2::ll_transpose(IFC.csr, tf2::getDomainSize(sim, faces));
-        auto p1 = tf2::ll_prodDiag(mt, Omega_C.array);
-        auto p2 = tf2::ll_prodDiag(InvOmega_F.array, p1);
-        tf2::newMatrix(sim, "Interp_CF", faces, cells, p2);
-    }
+    tf2::getOrCreateField(sim, dim, "upredx_C",  cells);
+    tf2::getOrCreateField(sim, dim, "upredy_C",  cells);
+    tf2::getOrCreateField(sim, dim, "upredz_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uxdiff_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uydiff_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uzdiff_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uxdiff0_C", cells);
+    tf2::getOrCreateField(sim, dim, "uydiff0_C", cells);
+    tf2::getOrCreateField(sim, dim, "uzdiff0_C", cells);
+    tf2::getOrCreateField(sim, dim, "uxconv_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uyconv_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uzconv_C",  cells);
+    tf2::getOrCreateField(sim, dim, "uxconv0_C", cells);
+    tf2::getOrCreateField(sim, dim, "uyconv0_C", cells);
+    tf2::getOrCreateField(sim, dim, "uzconv0_C", cells);
+    tf2::getOrCreateField(sim, dim, "momSrcx_C", cells);
+    tf2::getOrCreateField(sim, dim, "momSrcy_C", cells);
+    tf2::getOrCreateField(sim, dim, "momSrcz_C", cells);
+    tf2::getOrCreateField(sim, dim, "P_C",       cells);
+
+    tf2::getOrCreateField(sim, dim, "ux_F", faces);
+    tf2::getOrCreateField(sim, dim, "uy_F", faces);
+    tf2::getOrCreateField(sim, dim, "uz_F", faces);
+
+    tf2::getOrCreateField(sim, dim, "ux0_N", nodes);
+    tf2::getOrCreateField(sim, dim, "uy0_N", nodes);
+    tf2::getOrCreateField(sim, dim, "uz0_N", nodes);
 }
 
 TF_Func bool RKiteration(tf2::Simulation &sim)
