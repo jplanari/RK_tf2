@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export USER_INSTALL_ROOT=/home/josep.plana/INSTALL
+export PKG_CONFIG_PATH=${USER_INSTALL_ROOT}/pkgconfig/
+export PATH=${PATH}:${USER_INSTALL_ROOT}/bin/
+
+tf-makemod $1
