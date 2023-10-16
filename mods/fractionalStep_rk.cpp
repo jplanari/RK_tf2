@@ -2,11 +2,11 @@
 #include "tf2/Opers.h"
 #include "tf2/Simulation.h"
 
-#include "butcherTableaux.h"
-#include "setup_fsm.h"
-#include "cd.h"
-#include "fsm_rk.h"
-#include "hardcoded.h"
+#include "fsm_rk/butcherTableaux.h"
+#include "fsm_rk/setup_fsm.h"
+#include "fsm_rk/cd.h"
+#include "fsm_rk/fsm_rk.h"
+#include "fsm_rk/hardcoded.h"
 
 #include <vector>
 #include <cstdarg>

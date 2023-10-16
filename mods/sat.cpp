@@ -2,7 +2,7 @@
 #include "tf2/Opers.h"
 #include <cmath>
 
-#include "nsrk/butcherTableaux.h"
+#include "fsm_rk/butcherTableaux.h"
 #include "sat/stability.h"
 #include "sat/eigenbounds.h"
 
