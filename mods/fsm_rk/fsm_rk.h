@@ -2,7 +2,7 @@ tf2::Field &predictor(tf2::Field &un, tf2::Field &conv, tf2::Field &diff, tf2::F
 {
     auto &up = TF_getTmpField(sim,un);
 
-    tf2::oper_axpy(un, up, 1.0, 0.0);
+    tf2::oper_copy(un, up);
     tf2::oper_axpy(diff, up, dt*coef, 1.0);
     tf2::oper_axpy(conv, up, -dt*coef, 1.0);
     tf2::oper_axpy(ms, up, dt*coef, 1.0);
@@ -13,21 +13,16 @@ tf2::Field &predictor(tf2::Field &un, tf2::Field &conv, tf2::Field &diff, tf2::F
 tf2::Field &predictorVector(tf2::Field &un, std::vector<tf2::Field*> conv, std::vector<tf2::Field*> diff, tf2::Field &ms, butcherTableau coefs, double dt, int i, tf2::Simulation &sim)
 {
   auto &up = TF_getTmpField(sim,un);
+  tf2::oper_copy(un,up);
 
   if(i!=0)
-  {
-    up = predictor(un,*(conv.at(0)),*(diff.at(0)),ms,coefs.A.at(id(i,1)),dt,sim);
-    for (int j=2; j<i; ++j)
+    for (int j=1; j<i; ++j)
       up = predictor(up,*(conv.at(j-1)),*(diff.at(j-1)),ms,coefs.A.at(id(i,j)),dt,sim);
-    return up;
-  }
   else
-  {
-    up = predictor(un,*(conv.at(0)),*(diff.at(0)),ms,coefs.b.at(0),dt,sim);
-    for (int j=1; j<coefs.b.size(); ++j)
+    for (int j=0; j<coefs.b.size(); ++j)
       up = predictor(up,*(conv.at(j)),*(diff.at(j)),ms,coefs.b.at(j),dt,sim);
-    return up;
-  }
+  
+  return up;
 } 
 
 void projection(tf2::Field &uf, tf2::Field &p, tf2::Matrix &G)

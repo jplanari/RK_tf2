@@ -145,17 +145,9 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     auto &convy0 = tf2::getOrCreateField(sim,"convy_0",upx);
     auto &convz0 = tf2::getOrCreateField(sim,"convz_0",upx);
 
-    tf2::oper_prod(diffx0,diffx0,0.0);
-    tf2::oper_prod(diffy0,diffy0,0.0);
-    tf2::oper_prod(diffz0,diffz0,0.0);
-    tf2::oper_prod(convx0,convx0,0.0);
-    tf2::oper_prod(convy0,convy0,0.0);
-    tf2::oper_prod(convz0,convz0,0.0);
-
     diffx.at(0) = &diffx0;
     diffy.at(0) = &diffy0;
     diffz.at(0) = &diffz0;
-
     convx.at(0) = &convx0;
     convy.at(0) = &convy0;
     convz.at(0) = &convz0; 
@@ -169,6 +161,13 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     tf2::oper_prod(ICF, upy, ufy);
     tf2::oper_prod(ICF, upz, ufz);
  
+    tf2::oper_prod(diffx0,diffx0,0.0);
+    tf2::oper_prod(diffy0,diffy0,0.0);
+    tf2::oper_prod(diffz0,diffz0,0.0);
+    tf2::oper_prod(convx0,convx0,0.0);
+    tf2::oper_prod(convy0,convy0,0.0);
+    tf2::oper_prod(convz0,convz0,0.0);
+
     diffx0  = diffusive(ux,0,sim);
     diffy0  = diffusive(uy,1,sim);
     diffz0  = diffusive(uz,2,sim);
@@ -186,9 +185,9 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
         auto &diffyi = tf2::getOrCreateField(sim,"diffy_"+std::to_string(i),upx);
         auto &diffzi = tf2::getOrCreateField(sim,"diffz_"+std::to_string(i),upx);
     
-        upx = predictorVector(uxn,convx,diffx,msx,coefs,dt,i,sim);
-        upy = predictorVector(uyn,convy,diffy,msy,coefs,dt,i,sim);
-        upz = predictorVector(uzn,convz,diffz,msz,coefs,dt,i,sim);
+        upx = predictorVector(uxn,convx,diffx,msx,coefs,dt,i+1,sim);
+        upy = predictorVector(uyn,convy,diffy,msy,coefs,dt,i+1,sim);
+        upz = predictorVector(uzn,convz,diffz,msz,coefs,dt,i+1,sim);
    
         tf2::oper_prod(ICF, upx, ufx);
         tf2::oper_prod(ICF, upy, ufy);
@@ -210,19 +209,19 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
         tf2::oper_prod(ID_CN, upy, uy);
         tf2::oper_prod(ID_CN, upz, uz);
  
-        tf2::oper_prod(diffxi,diffxi,0.0);
-        tf2::oper_prod(diffyi,diffyi,0.0);
-        tf2::oper_prod(diffzi,diffzi,0.0);
-        tf2::oper_prod(convxi,convxi,0.0);
-        tf2::oper_prod(convyi,convyi,0.0);
-        tf2::oper_prod(convzi,convzi,0.0);
-
         diffx.at(i) = &diffxi;
         diffy.at(i) = &diffyi;
         diffz.at(i) = &diffzi;
         convx.at(i) = &convxi;
         convy.at(i) = &convyi;
         convz.at(i) = &convzi;       
+
+        tf2::oper_prod(diffxi,diffxi,0.0);
+        tf2::oper_prod(diffyi,diffyi,0.0);
+        tf2::oper_prod(diffzi,diffzi,0.0);
+        tf2::oper_prod(convxi,convxi,0.0);
+        tf2::oper_prod(convyi,convyi,0.0);
+        tf2::oper_prod(convzi,convzi,0.0);
 
         diffxi  = diffusive(ux,0,sim);
         diffyi  = diffusive(uy,1,sim);
@@ -257,6 +256,7 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     tf2::oper_prod(ID_CN, upx, ux);
     tf2::oper_prod(ID_CN, upy, uy);
     tf2::oper_prod(ID_CN, upz, uz);
+    
     tf2::info("Iteration completed.\n");
 }
 
