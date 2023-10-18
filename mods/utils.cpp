@@ -69,6 +69,20 @@ TF_Func void init_profile_ux(tf2::Simulation &sim)
     };
     tf2::initField(sim, "ux_N", profile);
     tf2::info("init_profile_ux completed.\n");
+
+    auto &INF = tf2::getMatrix(sim,"Interp_NF");
+
+    auto &ux = tf2::getField(sim,"ux_N");
+    auto &uy = tf2::getField(sim,"uy_N");
+    auto &uz = tf2::getField(sim,"uz_N");
+
+    auto &uxf = tf2::getField(sim,"ux_F");
+    auto &uyf = tf2::getField(sim,"uy_F");
+    auto &uzf = tf2::getField(sim,"uz_F");
+
+    tf2::oper_prod(INF,ux,uxf);
+    tf2::oper_prod(INF,uy,uyf);
+    tf2::oper_prod(INF,uz,uzf);
 }
 
 TF_Func void init_omega(tf2::Simulation &sim)
