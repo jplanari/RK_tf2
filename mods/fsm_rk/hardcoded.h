@@ -1,3 +1,5 @@
+#define id(eps,sig) (eps-1)*(eps-2)/2+(sig-1)
+
 TF_Func bool EulerIteration(tf2::Simulation &sim)
 {
     auto &M     = tf2::getMatrix(sim, "Id_NC");
@@ -259,16 +261,19 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
     auto &p      = tf2::getField(sim, "P_C");
     static auto psolver = tf2::getSolver(sim, "Pressure_Solver");
 
-    std::vector<tf2::Field*> convx(2);
-    std::vector<tf2::Field*> diffx(2);
-    std::vector<tf2::Field*> convy(2);
-    std::vector<tf2::Field*> diffy(2);
-    std::vector<tf2::Field*> convz(2);
-    std::vector<tf2::Field*> diffz(2);
-    
-    std::vector<double> b = {0.5,0.5};
+    butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
+
+    std::vector<double> b = coefs.b;
+    std::vector<double> A = coefs.A;
     int s = b.size();
-   
+ 
+    std::vector<tf2::Field*> convx(s);
+    std::vector<tf2::Field*> diffx(s);
+    std::vector<tf2::Field*> convy(s);
+    std::vector<tf2::Field*> diffy(s);
+    std::vector<tf2::Field*> convz(s);
+    std::vector<tf2::Field*> diffz(s);  
+
     // Temporary variables.
     auto &pSource = TF_getTmpField(sim, p);
     
@@ -310,7 +315,6 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
     tf2::oper_prod(convy0,convy0,0.0);
     tf2::oper_prod(convz0,convz0,0.0);
 
-
     diffx.at(0) = &diffx0;
     diffy.at(0) = &diffy0;
     diffz.at(0) = &diffz0;
@@ -334,9 +338,9 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
       tf2::oper_copy(uzn,upz);
 
       for(int j=0; j<i; ++j){
-        upx = predictor(upx,*(convx.at(j)),*(diffx.at(j)),msx,1.0,dt,sim);
-        upy = predictor(upy,*(convy.at(j)),*(diffy.at(j)),msy,1.0,dt,sim);
-        upz = predictor(upz,*(convz.at(j)),*(diffz.at(j)),msz,1.0,dt,sim);
+        upx = predictor(upx,*(convx.at(j)),*(diffx.at(j)),msx,A.at(id(i+1,j+1)),dt,sim);
+        upy = predictor(upy,*(convy.at(j)),*(diffy.at(j)),msy,A.at(id(i+1,j+1)),dt,sim);
+        upz = predictor(upz,*(convz.at(j)),*(diffz.at(j)),msz,A.at(id(i+1,j+1)),dt,sim);
       }
       
       tf2::oper_prod(ICF, upx, ufx);
@@ -368,12 +372,12 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
       auto &diffyi = tf2::getOrCreateField(sim,"diffy_"+std::to_string(i),upx);
       auto &diffzi = tf2::getOrCreateField(sim,"diffz_"+std::to_string(i),upx);
  
-      diffx.at(1) = &diffxi;
-      diffy.at(1) = &diffyi;
-      diffz.at(1) = &diffzi;
-      convx.at(1) = &convxi;
-      convy.at(1) = &convyi;
-      convz.at(1) = &convzi;       
+      diffx.at(i) = &diffxi;
+      diffy.at(i) = &diffyi;
+      diffz.at(i) = &diffzi;
+      convx.at(i) = &convxi;
+      convy.at(i) = &convyi;
+      convz.at(i) = &convzi;       
 
       tf2::oper_prod(diffxi,diffxi,0.0);
       tf2::oper_prod(diffyi,diffyi,0.0);
