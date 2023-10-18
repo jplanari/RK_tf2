@@ -265,7 +265,9 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
     std::vector<tf2::Field*> diffy(2);
     std::vector<tf2::Field*> convz(2);
     std::vector<tf2::Field*> diffz(2);
- 
+    
+    std::vector<double> b = {0.5,0.5};
+    int s = b.size();
    
     // Temporary variables.
     auto &pSource = TF_getTmpField(sim, p);
@@ -325,72 +327,81 @@ TF_Func bool RK2Iteration_vector(tf2::Simulation &sim)
 
     //predictor 2 stage
 
-    upx = predictor(uxn,*(convx.at(0)),*(diffx.at(0)),msx,1.0,dt,sim);
-    upy = predictor(uyn,*(convy.at(0)),*(diffy.at(0)),msy,1.0,dt,sim);
-    upz = predictor(uzn,*(convz.at(0)),*(diffz.at(0)),msz,1.0,dt,sim);
-   
-    tf2::oper_prod(ICF, upx, ufx);
-    tf2::oper_prod(ICF, upy, ufy);
-    tf2::oper_prod(ICF, upz, ufz);
-    
-    pSource = pRHS(ufx,ufy,ufz,sim); 
-    tf2::oper_solve(psolver, pSource, p);
- 
-    projection(ufx,p,GX);
-    projection(ufy,p,GY);
-    projection(ufz,p,GZ);
+    for(int i = 1; i<s; ++i){
+      
+      tf2::oper_copy(uxn,upx);
+      tf2::oper_copy(uyn,upy);
+      tf2::oper_copy(uzn,upz);
 
-    projection(upx,p,GX,IFC,sim);
-    projection(upy,p,GY,IFC,sim);
-    projection(upz,p,GZ,IFC,sim);
+      for(int j=0; j<i; ++j){
+        upx = predictor(upx,*(convx.at(j)),*(diffx.at(j)),msx,1.0,dt,sim);
+        upy = predictor(upy,*(convy.at(j)),*(diffy.at(j)),msy,1.0,dt,sim);
+        upz = predictor(upz,*(convz.at(j)),*(diffz.at(j)),msz,1.0,dt,sim);
+      }
+      
+      tf2::oper_prod(ICF, upx, ufx);
+      tf2::oper_prod(ICF, upy, ufy);
+      tf2::oper_prod(ICF, upz, ufz);
     
+      pSource = pRHS(ufx,ufy,ufz,sim); 
+      tf2::oper_solve(psolver, pSource, p);
+ 
+      projection(ufx,p,GX);
+      projection(ufy,p,GY);
+      projection(ufz,p,GZ);
+
+      projection(upx,p,GX,IFC,sim);
+      projection(upy,p,GY,IFC,sim);
+      projection(upz,p,GZ,IFC,sim);
+      
    // Map the velocity to the nodes.
-    tf2::oper_prod(ID_CN, upx, ux);
-    tf2::oper_prod(ID_CN, upy, uy);
-    tf2::oper_prod(ID_CN, upz, uz);
+      tf2::oper_prod(ID_CN, upx, ux);
+      tf2::oper_prod(ID_CN, upy, uy);
+      tf2::oper_prod(ID_CN, upz, uz);
 
-    //FINAL STAGE
+      //FINAL STAGE
  
-    auto &convxi = tf2::getOrCreateField(sim,"convx_1",upx);
-    auto &convyi = tf2::getOrCreateField(sim,"convy_1",upx);
-    auto &convzi = tf2::getOrCreateField(sim,"convz_1",upx);
-    auto &diffxi = tf2::getOrCreateField(sim,"diffx_1",upx);
-    auto &diffyi = tf2::getOrCreateField(sim,"diffy_1",upx);
-    auto &diffzi = tf2::getOrCreateField(sim,"diffz_1",upx);
+      auto &convxi = tf2::getOrCreateField(sim,"convx_"+std::to_string(i),upx);
+      auto &convyi = tf2::getOrCreateField(sim,"convy_"+std::to_string(i),upx);
+      auto &convzi = tf2::getOrCreateField(sim,"convz_"+std::to_string(i),upx);
+      auto &diffxi = tf2::getOrCreateField(sim,"diffx_"+std::to_string(i),upx);
+      auto &diffyi = tf2::getOrCreateField(sim,"diffy_"+std::to_string(i),upx);
+      auto &diffzi = tf2::getOrCreateField(sim,"diffz_"+std::to_string(i),upx);
  
-    diffx.at(1) = &diffxi;
-    diffy.at(1) = &diffyi;
-    diffz.at(1) = &diffzi;
-    convx.at(1) = &convxi;
-    convy.at(1) = &convyi;
-    convz.at(1) = &convzi;       
+      diffx.at(1) = &diffxi;
+      diffy.at(1) = &diffyi;
+      diffz.at(1) = &diffzi;
+      convx.at(1) = &convxi;
+      convy.at(1) = &convyi;
+      convz.at(1) = &convzi;       
 
-    tf2::oper_prod(diffxi,diffxi,0.0);
-    tf2::oper_prod(diffyi,diffyi,0.0);
-    tf2::oper_prod(diffzi,diffzi,0.0);
-    tf2::oper_prod(convxi,convxi,0.0);
-    tf2::oper_prod(convyi,convyi,0.0);
-    tf2::oper_prod(convzi,convzi,0.0);
+      tf2::oper_prod(diffxi,diffxi,0.0);
+      tf2::oper_prod(diffyi,diffyi,0.0);
+      tf2::oper_prod(diffzi,diffzi,0.0);
+      tf2::oper_prod(convxi,convxi,0.0);
+      tf2::oper_prod(convyi,convyi,0.0);
+      tf2::oper_prod(convzi,convzi,0.0);
 
-    diffxi  = diffusive(ux,0,sim);
-    diffyi  = diffusive(uy,1,sim);
-    diffzi  = diffusive(uz,2,sim);
-    convxi  = convective(ufx,0,sim);
-    convyi  = convective(ufy,1,sim);
-    convzi  = convective(ufz,2,sim);
-    
+      diffxi  = diffusive(ux,0,sim);
+      diffyi  = diffusive(uy,1,sim);
+      diffzi  = diffusive(uz,2,sim);
+      convxi  = convective(ufx,0,sim);
+      convyi  = convective(ufy,1,sim);
+      convzi  = convective(ufz,2,sim);
+    }
     //printMaxVals("end of first stage. DIFFUSIVE FIELD",diffx,diffy,diffz);
     //printMaxVals("end of first stage. CONVECTIVE FIELD",convx,convy,convz);
     
     //Predictor velocity
+    tf2::oper_copy(uxn,upx);
+    tf2::oper_copy(uyn,upy);
+    tf2::oper_copy(uzn,upz);
     
-    upx = predictor(uxn,*(convx.at(0)),*(diffx.at(0)),msx,0.5,dt,sim);
-    upy = predictor(uyn,*(convy.at(0)),*(diffy.at(0)),msy,0.5,dt,sim);
-    upz = predictor(uzn,*(convz.at(0)),*(diffz.at(0)),msz,0.5,dt,sim);
-
-    upx = predictor(upx,*(convx.at(1)),*(diffx.at(1)),msx,0.5,dt,sim);
-    upy = predictor(upy,*(convy.at(1)),*(diffy.at(1)),msy,0.5,dt,sim);
-    upz = predictor(upz,*(convz.at(1)),*(diffz.at(1)),msz,0.5,dt,sim);
+    for(int i = 0; i < s; ++i){ 
+      upx = predictor(upx,*(convx.at(i)),*(diffx.at(i)),msx,b.at(i),dt,sim);
+      upy = predictor(upy,*(convy.at(i)),*(diffy.at(i)),msy,b.at(i),dt,sim);
+      upz = predictor(upz,*(convz.at(i)),*(diffz.at(i)),msz,b.at(i),dt,sim);
+    }
 
     tf2::oper_prod(ICF, upx, ufx);
     tf2::oper_prod(ICF, upy, ufy);
