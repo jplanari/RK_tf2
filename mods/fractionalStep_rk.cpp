@@ -82,6 +82,8 @@ const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
 
 TF_Func bool RKiteration(tf2::Simulation &sim)
 {
+    if(sim.IOParamD["_ElapsedTime"] >= sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
+
     auto &M     = tf2::getMatrix(sim, "Id_NC");
     auto &GX    = tf2::getMatrix(sim, "GradX_CF");
     auto &GY    = tf2::getMatrix(sim, "GradY_CF");

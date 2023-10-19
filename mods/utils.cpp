@@ -22,6 +22,7 @@ TF_Func void init_props(tf2::Simulation &sim)
     double &Ub = sim.IOParamD["Ub"];
     double &d = sim.IOParamD["delta"];
     double Ly = tf2::getLength(tf2::getSMesh(sim))[1];
+    sim.IOParamD["_MaxTime"] = 1e5;
 
     d = 0.5*Ly;
     Ub = d*0.5*Re_tau;
@@ -142,6 +143,7 @@ TF_Func bool update_DT_cfl(tf2::Simulation &sim)
 TF_Func bool monitor(tf2::Simulation &sim)
 {
     static bool first = true;
+    static bool steady_state = false;
     const uint32_t ndim = tf2::getField(sim,"ux_N").dim;
     if (ndim>1){
     if (first)
@@ -175,15 +177,25 @@ TF_Func bool monitor(tf2::Simulation &sim)
                   "\n");
         first = false;
     }
+    double max_x;
     if (sim.IOParamI["_Iter"]%10 == 0)
     {
     auto &ux = tf2::getField(sim, "ux_N");
-    auto max_x = std::max(fabs(tf2::oper_max(ux)[0]), fabs(tf2::oper_min(ux)[0]));
+    max_x = std::max(fabs(tf2::oper_max(ux)[0]), fabs(tf2::oper_min(ux)[0]));
     static auto s = tf2::getSolver(sim, "Pressure_Solver");
     tf2::info("%d %.8e %.5e %.5e %.5e %.5e\n",
               sim.IOParamI["_Iter"], runTime(sim),
               sim.IOParamD["_TimeStep"], sim.IOParamD["_ElapsedTime"],
               tf2::oper_solve_residual(s),max_x);
+    }
+    if(sim.IOParamI["_Iter"]%1000 == 0 && !steady_state)
+    {
+      if(fabs(max_x-sim.IOParamD["maxU"])/sim.IOParamD["maxU"] < 1e-1){
+        tf2::info("Steady state achieved. u_max = %e\n",sim.IOParamD["maxU"]);
+        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/sim.IOParamD["maxU"];
+        steady_state = true;
+      }
+      sim.IOParamD["maxU"] = max_x;
     }
     }
     return tf2::Iter_Continue;
