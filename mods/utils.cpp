@@ -23,6 +23,8 @@ TF_Func void init_props(tf2::Simulation &sim)
     double &d = sim.IOParamD["delta"];
     double Ly = tf2::getLength(tf2::getSMesh(sim))[1];
     sim.IOParamD["_MaxTime"] = 1e5;
+    sim.IOParamD["_RAn"] = Ub;
+    sim.IOParamD["_RAn1"] = Ub;
 
     d = 0.5*Ly;
     Ub = d*0.5*Re_tau;
@@ -139,6 +141,37 @@ TF_Func bool update_DT_cfl(tf2::Simulation &sim)
 	return tf2::Iter_Continue;
 } 
 
+bool determineSteadyState(double max_x, double max_u, tf2::Simulation &sim)
+{
+  if(sim.IOParamI["_Iter"]%1000 == 0)
+  {
+      if(fabs(max_x-max_u)/max_u < 1e-1){
+        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
+        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
+        return true;
+      }
+      sim.IOParamD["maxU"] = max_x;
+      return false;
+  } 
+}
+
+bool rollingSteadyState(double max_x, int window_size, tf2::Simulation &sim)
+{
+  double curr_ra = sim.IOParamD["_RAn"];
+  curr_ra += max_x;
+  if(sim.IOParamI["_Iter"]%window_size==0)
+  {
+    curr_ra /= (double) window_size;
+    if (fabs(curr_ra-sim.IOParamD["_RAn1"])/sim.IOParamD["_RAn1"] < 1e-1){
+        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
+        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
+        return true;
+    }
+    else
+      sim.IOParamD["_RAn1"] = sim.IOParamD["_RAn"];
+  }
+  return false;
+}
 
 TF_Func bool monitor(tf2::Simulation &sim)
 {
@@ -188,16 +221,9 @@ TF_Func bool monitor(tf2::Simulation &sim)
               sim.IOParamD["_TimeStep"], sim.IOParamD["_ElapsedTime"],
               tf2::oper_solve_residual(s),max_x);
     }
-    if(sim.IOParamI["_Iter"]%1000 == 0 && !steady_state)
-    {
-      if(fabs(max_x-sim.IOParamD["maxU"])/sim.IOParamD["maxU"] < 1e-1){
-        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
-        steady_state = true;
-        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
-        tf2::info("Steady state achieved. u_max = %e, maxTime = %e\n",sim.IOParamD["maxU"],sim.IOParamD["_MaxTime"]);
-      }
-      sim.IOParamD["maxU"] = max_x;
-    }
+    
+    if(!steady_state) steady_state = determineSteadyState(max_x,sim.IOParamD["maxU"],sim);
+   
     }
     return tf2::Iter_Continue;
 }
