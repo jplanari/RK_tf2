@@ -191,9 +191,10 @@ TF_Func bool monitor(tf2::Simulation &sim)
     if(sim.IOParamI["_Iter"]%1000 == 0 && !steady_state)
     {
       if(fabs(max_x-sim.IOParamD["maxU"])/sim.IOParamD["maxU"] < 1e-1){
-        tf2::info("Steady state achieved. u_max = %e\n",sim.IOParamD["maxU"]);
-        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/sim.IOParamD["maxU"];
+        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
         steady_state = true;
+        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
+        tf2::info("Steady state achieved. u_max = %e, maxTime = %e\n",sim.IOParamD["maxU"],sim.IOParamD["_MaxTime"]);
       }
       sim.IOParamD["maxU"] = max_x;
     }

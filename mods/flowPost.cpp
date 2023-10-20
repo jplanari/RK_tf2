@@ -129,7 +129,6 @@ void initAvgField(tf2::Simulation &sim)
     const auto &mesh = tf2::getSMesh(sim);
     std::vector<double> buf_fab(tf2::getNumEntries(fab));
     const auto faces = tf2::getNumFaces(mesh);
-    tf2::info("hola");
     for (uint32_t it = 0; it < faces; it++)
     {
         const auto &F = tf2::getFaceIJKFromId(mesh, it);
@@ -205,7 +204,7 @@ void averageXZ(tf2::Simulation &sim)
     const auto &volumes = allReduce(volumesL, MPI_SUM);
     const auto &y = allReduce(yL, MPI_MAX);
     {
-    std::ofstream out("profile_"+outP+"_cells_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/profile_"+outP+"_cells_"+std::to_string(NY)+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ uavg wavg pavg\n";
     out<<std::scientific<<std::setprecision(8);
@@ -250,7 +249,7 @@ void averageXZ(tf2::Simulation &sim)
     const auto &areas = allReduce(areasL, MPI_SUM);
     const auto &yf = allReduce(yfL, MPI_MAX);
     {
-    std::ofstream out("profile_"+outP+"_faces_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/profile_"+outP+"_faces_"+std::to_string(NY)+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ duavg/dy dwavg/dy\n";
     out<<std::scientific<<std::setprecision(8);
@@ -363,7 +362,7 @@ void ReynoldsStresses(tf2::Simulation &sim)
     const auto &volumes = allReduce(volumesL, MPI_SUM);
     const auto &y = allReduce(yL, MPI_MAX);
     {
-    std::ofstream out("reystress_"+outP+"_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/reystress_"+outP+"_"+std::to_string(NY)+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ R_uu R_vv R_ww R_uv R_uw R_vw\n";
     out<<std::scientific<<std::setprecision(8);
