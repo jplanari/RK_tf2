@@ -3,6 +3,17 @@
 
 #include <vector>
 
+TF_Func void redefine_domain(tf2::Simulation &sim)
+{
+  double &Lx = tf2::getLength(tf2::getSMesh(sim))[0];
+  double &Ly = tf2::getLength(tf2::getSMesh(sim))[1];
+  double &Lz = tf2::getLength(tf2::getSMesh(sim))[2];
+
+  Lx = 2*M_PI;
+  Ly = 2*M_PI;
+  Lz = 2*M_PI;
+}
+
 TF_Func void init_props(tf2::Simulation &sim)
 {
     double Re_tau = sim.IOParamD["Re"];
@@ -10,14 +21,11 @@ TF_Func void init_props(tf2::Simulation &sim)
     double Lx = tf2::getLength(tf2::getSMesh(sim))[0];
     double U0 = sim.IOParamD["U0"];
 
-    sim.IOParamD["_MaxTime"] = (Lx/U0)*20.0;
+    tf2::info("Lx=%e\n",Lx);
+
+    sim.IOParamD["_MaxTime"] = (Lx/U0)*5.0;
 
     kinVisc = 1.0/Re_tau;
-}
-
-double my_rand0(double)
-{
-    return (1.0-2.0*drand48());
 }
 
 TF_Func void init_profile(tf2::Simulation &sim)
@@ -25,27 +33,27 @@ TF_Func void init_profile(tf2::Simulation &sim)
     auto U0 = sim.IOParamD["U0"];
     auto dim = tf2::getField(sim, "ux_N").dim;
     
-    auto profile_x = [=](double x, double y, double z) -> tf2::Vn
+    auto profile_x = [=](double x, double y, double ) -> tf2::Vn
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, U0*sin(x)*cos(y)*cos(z));
+        tf2::Vn result(dim, U0*cos(x)*sin(y));
         return result;
     };
  
-    auto profile_y = [=](double x, double y, double z) -> tf2::Vn
+    auto profile_y = [=](double x, double y, double ) -> tf2::Vn
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, U0*cos(x)*sin(y)*cos(z));
+        tf2::Vn result(dim, U0*sin(x)*cos(y));
         return result;
     };   
 
-    auto profile_z = [=](double x, double y, double z) -> tf2::Vn
+    auto profile_z = [=](double , double , double ) -> tf2::Vn
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, U0*cos(x)*cos(y)*sin(z));
+        tf2::Vn result(dim, U0*0.0);
         return result;
     };   
 
