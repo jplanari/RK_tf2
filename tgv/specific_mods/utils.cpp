@@ -3,38 +3,16 @@
 
 #include <vector>
 
-void setup_cfl(tf2::Simulation &sim)
-{
-    double &DX = sim.IOParamD["dx"];
-    auto &omega = tf2::getField(sim, "Omega_C");
-    double v = tf2::oper_min(omega)[0];
-    DX = tf2::allReduce(pow(v, 1.0/3.0), MPI_MIN);
-    const double kinVisc = sim.IOParamD["kinVisc"];
-    double &tVisc = sim.IOParamD["tVisc"];
-    tVisc = 0.2*DX*DX/kinVisc;
-    sim.IOParamD["_TimeStep"] = tVisc;
-}
-
 TF_Func void init_props(tf2::Simulation &sim)
 {
-    double Re_tau = sim.IOParamD["Re_tau"];
+    double Re_tau = sim.IOParamD["Re"];
     double &kinVisc = sim.IOParamD["kinVisc"];
-    double &Ub = sim.IOParamD["Ub"];
-    double &d = sim.IOParamD["delta"];
-    double Ly = tf2::getLength(tf2::getSMesh(sim))[1];
-    sim.IOParamD["_MaxTime"] = 1e5;
-    sim.IOParamD["_RAn"] = Ub;
-    sim.IOParamD["_RAn1"] = Ub;
+    double Lx = tf2::getLength(tf2::getSMesh(sim))[0];
+    double U0 = sim.IOParamD["U0"];
 
-    d = 0.5*Ly;
-    Ub = d*0.5*Re_tau;
+    sim.IOParamD["_MaxTime"] = (Lx/U0)*20.0;
+
     kinVisc = 1.0/Re_tau;
-    auto &msx = tf2::getField(sim, "momSrcx_C");
-    double gp = sim.IOParamD["gradp"];
-    tf2::oper_setConst(msx, gp);
-
-    setup_cfl(sim);
-    tf2::info("init_props completed.\n");
 }
 
 double my_rand0(double)
@@ -42,36 +20,38 @@ double my_rand0(double)
     return (1.0-2.0*drand48());
 }
 
-TF_Func void randomize_u(tf2::Simulation &sim)
+TF_Func void init_profile(tf2::Simulation &sim)
 {
-    srand48(tf2::mpiRank());
-    auto &uy = tf2::getField(sim, "uy_N");
-    auto &uz = tf2::getField(sim, "uz_N");
-
-    // Since we are passing 'my_rand0' as the argument to 'oper_apply', and
-    // 'my_rand0' is a function that maps a double into a double (as opposed to
-    // mapping a tf2::Vn into a tf2::Vn), it will work irrespective of how many
-    // components the field has: it will be applied for every component of
-    // every element.
-    tf2::oper_apply(uy, my_rand0);
-    tf2::oper_apply(uz, my_rand0);
-    tf2::info("randomize_u completed\n");
-}
-
-TF_Func void init_profile_ux(tf2::Simulation &sim)
-{
-    auto Ub = sim.IOParamD["Ub"];
-    auto d = sim.IOParamD["delta"];
+    auto U0 = sim.IOParamD["U0"];
     auto dim = tf2::getField(sim, "ux_N").dim;
-    auto profile = [=](double, double y, double) -> tf2::Vn
+    
+    auto profile_x = [=](double x, double y, double z) -> tf2::Vn
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, Ub*y/d*(2.0-y/d)+0.05*Ub*my_rand0(.1));
+        tf2::Vn result(dim, U0*sin(x)*cos(y)*cos(z));
         return result;
     };
-    tf2::initField(sim, "ux_N", profile);
-    tf2::info("init_profile_ux completed.\n");
+ 
+    auto profile_y = [=](double x, double y, double z) -> tf2::Vn
+    {
+        // We want to apply the same profile for all components / simulations,
+        // so we just replicate it 'dim' times.
+        tf2::Vn result(dim, U0*cos(x)*sin(y)*cos(z));
+        return result;
+    };   
+
+    auto profile_z = [=](double x, double y, double z) -> tf2::Vn
+    {
+        // We want to apply the same profile for all components / simulations,
+        // so we just replicate it 'dim' times.
+        tf2::Vn result(dim, U0*cos(x)*cos(y)*sin(z));
+        return result;
+    };   
+
+    tf2::initField(sim, "ux_N", profile_x);
+    tf2::initField(sim, "uy_N", profile_y);
+    tf2::initField(sim, "uz_N", profile_z);
 
     auto &INF = tf2::getMatrix(sim,"Interp_NF");
 
@@ -114,69 +94,9 @@ TF_Func void init_omega(tf2::Simulation &sim)
     tf2::info("init_omega completed.\n");
 }
 
-TF_Func bool update_DT_cfl(tf2::Simulation &sim) 
-{
-	auto &ux  = tf2::getField(sim, "ux_N");
-	auto &uy  = tf2::getField(sim, "uy_N");
-	auto &uz  = tf2::getField(sim, "uz_N");
-	auto &mod = TF_getTmpField(sim, ux);
-	auto &tmp = TF_getTmpField(sim, ux);
-
-	tf2::oper_axpy(ux,mod,1.0,0.0);
-	tf2::oper_prod(ux,mod,1.0);
-	
-	tf2::oper_axpy(uy,tmp,1.0,0.0);
-	tf2::oper_prod(uy,tmp,1.0);
-	tf2::oper_axpy(tmp,mod,1.0,1.0);
-
-	tf2::oper_axpy(uz,tmp,1.0,0.0);
-	tf2::oper_prod(uz,tmp,1.0);
-	tf2::oper_axpy(tmp,mod,1.0,1.0);
-	
-	const double uref = sqrt(tf2::max(tf2::oper_max(mod)));
-	const double cfl = sim.IOParamD["cfl"];
-	const double tVisc = sim.IOParamD["tVisc"];
-	const double DX = sim.IOParamD["dx"]; 
-	sim.IOParamD["_TimeStep"] = cfl*std::min(0.35*DX/uref, tVisc);
-	return tf2::Iter_Continue;
-} 
-
-bool determineSteadyState(double max_x, double max_u, tf2::Simulation &sim)
-{
-  if(sim.IOParamI["_Iter"]%1000 == 0)
-  {
-      if(fabs(max_x-max_u)/max_u < 1e-1){
-        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
-        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
-        return true;
-      }
-      sim.IOParamD["maxU"] = max_x;
-      return false;
-  } 
-}
-
-bool rollingSteadyState(double max_x, int window_size, tf2::Simulation &sim)
-{
-  double curr_ra = sim.IOParamD["_RAn"];
-  curr_ra += max_x;
-  if(sim.IOParamI["_Iter"]%window_size==0)
-  {
-    curr_ra /= (double) window_size;
-    if (fabs(curr_ra-sim.IOParamD["_RAn1"])/sim.IOParamD["_RAn1"] < 1e-1){
-        sim.IOParamD["_MaxTime"] = sim.IOParamD["_ElapsedTime"] + sim.IOParamD["nFT"]*4*M_PI/(0.65*sim.IOParamD["maxU"]);
-        sim.IOParamI["_TAVG_Start"] = sim.IOParamI["_Iter"];
-        return true;
-    }
-    else
-      sim.IOParamD["_RAn1"] = sim.IOParamD["_RAn"];
-  }
-  return false;
-}
-
 TF_Func bool monitor(tf2::Simulation &sim)
 {
     static bool first = true;
-    static bool steady_state = false;
     const uint32_t ndim = tf2::getField(sim,"ux_N").dim;
     if (ndim>1){
     if (first)
@@ -221,54 +141,8 @@ TF_Func bool monitor(tf2::Simulation &sim)
               sim.IOParamD["_TimeStep"], sim.IOParamD["_ElapsedTime"],
               tf2::oper_solve_residual(s),max_x);
     }
-    
-    if(!steady_state) steady_state = rollingSteadyState(max_x,100,sim);
    
     }
     return tf2::Iter_Continue;
-}
-
-TF_Func void setupManualBocos(tf2::Simulation &sim)
-{
-auto &u = tf2::getField(sim, "ux_N");
-auto cells = tf2::getDomainSize(sim, "Cells");
-std::vector<double> buffer(tf2::getNumEntries(u), 1.0);
-for (uint32_t it = cells*u.dim; it < buffer.size(); it++)
-{
-    buffer[it] = 0.0;
-}
-auto &cellMask = tf2::getOrCreateField(sim, "bnd", u);
-tf2::oper_setData(cellMask, buffer.data());
-}
-
-TF_Func bool applyManualBocos(tf2::Simulation &sim)
-{
-    auto &bnd = tf2::getField(sim,"bnd");
-	
-    auto &ux = tf2::getField(sim,"ux_N");
-    auto &uy = tf2::getField(sim,"uy_N");
-    auto &uz = tf2::getField(sim,"uz_N");
-
-    tf2::oper_prod(bnd,ux);
-    tf2::oper_prod(bnd,uy);
-    tf2::oper_prod(bnd,uz);
-
-    return tf2::Iter_Continue;
-}
-
-TF_Func void calc_div_u(tf2::Simulation &sim)
-{
-    auto &DX = tf2::getMatrix(sim, "DivX_FC");
-    auto &DY = tf2::getMatrix(sim, "DivY_FC");
-    auto &DZ = tf2::getMatrix(sim, "DivZ_FC");
-
-    auto &ux = tf2::getField(sim, "ux_F");
-    auto &uy = tf2::getField(sim, "uy_F");
-    auto &uz = tf2::getField(sim, "uz_F");
-
-    auto &div = tf2::getOrCreateField(sim, "div(u)", DX, ux);
-    tf2::oper_prod(DX, ux, div, 1.0, 0.0);
-    tf2::oper_prod(DY, uy, div, 1.0, 1.0);
-    tf2::oper_prod(DZ, uz, div, 1.0, 1.0);
 }
 
