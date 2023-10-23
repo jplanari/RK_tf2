@@ -6,7 +6,6 @@
 #include "fsm_rk/setup_fsm.h"
 #include "fsm_rk/cd.h"
 #include "fsm_rk/fsm_rk.h"
-#include "fsm_rk/hardcoded.h"
 
 #include <vector>
 #include <cstdarg>
@@ -172,12 +171,12 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     convy.at(0) = &convy0;
     convz.at(0) = &convz0; 
 
-    diffx0  = diffusive(ux,0,sim);
-    diffy0  = diffusive(uy,1,sim);
-    diffz0  = diffusive(uz,2,sim);
-    convx0  = convective(ufx,0,sim);
-    convy0  = convective(ufy,1,sim);
-    convz0  = convective(ufz,2,sim);
+    diffusive(ux,diffx0,sim);
+    diffusive(uy,diffy0,sim);
+    diffusive(uz,diffz0,sim);
+    convective(ufx,convx0,sim);
+    convective(ufy,convy0,sim);
+    convective(ufz,convz0,sim);
 
     //predictor 2 stage
 
@@ -236,12 +235,12 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
       tf2::oper_prod(convyi,convyi,0.0);
       tf2::oper_prod(convzi,convzi,0.0);
 
-      diffxi  = diffusive(ux,0,sim);
-      diffyi  = diffusive(uy,1,sim);
-      diffzi  = diffusive(uz,2,sim);
-      convxi  = convective(ufx,0,sim);
-      convyi  = convective(ufy,1,sim);
-      convzi  = convective(ufz,2,sim);
+      diffusive(ux,diffxi,sim);
+      diffusive(uy,diffyi,sim);
+      diffusive(uz,diffzi,sim);
+      convective(ufx,convxi,sim);
+      convective(ufy,convyi,sim);
+      convective(ufz,convzi,sim);
     }
     //printMaxVals("end of first stage. DIFFUSIVE FIELD",diffx,diffy,diffz);
     //printMaxVals("end of first stage. CONVECTIVE FIELD",convx,convy,convz);

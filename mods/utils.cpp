@@ -222,7 +222,7 @@ TF_Func bool monitor(tf2::Simulation &sim)
               tf2::oper_solve_residual(s),max_x);
     }
     
-    if(!steady_state) steady_state = determineSteadyState(max_x,sim.IOParamD["maxU"],sim);
+    if(!steady_state) steady_state = rollingSteadyState(max_x,100,sim);
    
     }
     return tf2::Iter_Continue;

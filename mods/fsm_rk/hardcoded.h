@@ -61,6 +61,8 @@ TF_Func bool EulerIteration(tf2::Simulation &sim)
     auto &convy = convective(ufy,1,sim);
     auto &convz = convective(ufz,2,sim);
 
+
+
     //printMaxVals("end of first stage. DIFFUSIVE FIELD",diffx,diffy,diffz);
     //printMaxVals("end of first stage. CONVECTIVE FIELD",convx,convy,convz);
     
