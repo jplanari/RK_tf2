@@ -187,16 +187,16 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
       tf2::oper_copy(uzn,upz);
 
       for(int j=0; j<i; ++j){
-        upx = predictor(upx,*(convx.at(j)),*(diffx.at(j)),msx,A.at(id(i+1,j+1)),dt,sim);
-        upy = predictor(upy,*(convy.at(j)),*(diffy.at(j)),msy,A.at(id(i+1,j+1)),dt,sim);
-        upz = predictor(upz,*(convz.at(j)),*(diffz.at(j)),msz,A.at(id(i+1,j+1)),dt,sim);
+        predictor(upx,upx,*(convx.at(j)),*(diffx.at(j)),msx,A.at(id(i+1,j+1)),dt,sim);
+        predictor(upy,upy,*(convy.at(j)),*(diffy.at(j)),msy,A.at(id(i+1,j+1)),dt,sim);
+        predictor(upz,upz,*(convz.at(j)),*(diffz.at(j)),msz,A.at(id(i+1,j+1)),dt,sim);
       }
       
       tf2::oper_prod(ICF, upx, ufx);
       tf2::oper_prod(ICF, upy, ufy);
       tf2::oper_prod(ICF, upz, ufz);
     
-      pSource = pRHS(ufx,ufy,ufz,sim); 
+      pRHS(pSource,ufx,ufy,ufz,sim); 
       tf2::oper_solve(psolver, pSource, p);
  
       projection(ufx,p,GX);
@@ -251,16 +251,16 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     tf2::oper_copy(uzn,upz);
     
     for(int i = 0; i < s; ++i){ 
-      upx = predictor(upx,*(convx.at(i)),*(diffx.at(i)),msx,b.at(i),dt,sim);
-      upy = predictor(upy,*(convy.at(i)),*(diffy.at(i)),msy,b.at(i),dt,sim);
-      upz = predictor(upz,*(convz.at(i)),*(diffz.at(i)),msz,b.at(i),dt,sim);
+      predictor(upx,upx,*(convx.at(i)),*(diffx.at(i)),msx,b.at(i),dt,sim);
+      predictor(upy,upy,*(convy.at(i)),*(diffy.at(i)),msy,b.at(i),dt,sim);
+      predictor(upz,upz,*(convz.at(i)),*(diffz.at(i)),msz,b.at(i),dt,sim);
     }
 
     tf2::oper_prod(ICF, upx, ufx);
     tf2::oper_prod(ICF, upy, ufy);
     tf2::oper_prod(ICF, upz, ufz);
     
-    pSource = pRHS(ufx,ufy,ufz,sim); 
+    pRHS(pSource,ufx,ufy,ufz,sim); 
     tf2::oper_solve(psolver, pSource, p);
  
     projection(ufx,p,GX);

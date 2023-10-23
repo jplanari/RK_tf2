@@ -1,4 +1,4 @@
-double calcFaceArea(const tf2::SMesh &m, tf2::IJK &F)
+double calcFaceArea(const tf2::SMesh &m, tf2::IJK F)
 {
     double result;
     auto areas = tf2::calcCellFacesArea(m, F);
