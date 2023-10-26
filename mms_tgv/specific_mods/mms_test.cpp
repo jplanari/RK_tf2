@@ -70,6 +70,7 @@ TF_Func void checkError(tf2::Simulation &sim)
   tf2::initField(sim, "uy_N_anal", profiley);
   tf2::oper_axpy(uy_anal,uy_anal,exp(-2*t/Re),0.0);
   
+  
   auto &ux = tf2::getField(sim,"ux_N");
   auto &uy = tf2::getField(sim,"uy_N");
 
@@ -79,8 +80,7 @@ TF_Func void checkError(tf2::Simulation &sim)
   tf2::oper_axpy(uy,uy_anal,-1.0,1.0);
   tf2::oper_apply(uy_anal, [](double x) {return fabs(x);});
   
-  tf2::info("maxU=%e, maxV=%e\n",tf2::oper_max(ux_anal),tf2::oper_max(uy_anal));
-  tf2::info("t=%e\tERROR Ux = %e\tERROR Uy = %e\n",t,tf2::oper_max(ux_anal)[0],tf2::oper_max(uy_anal)[0]);
+  tf2::info("t=%e\tERROR Ux = %e\nERROR Uy = %e\n",t,tf2::oper_max(ux_anal)[0],tf2::oper_max(uy_anal)[0]);
 }
 
 TF_Func bool mmsRK(tf2::Simulation &sim)
@@ -94,6 +94,10 @@ TF_Func bool mmsRK(tf2::Simulation &sim)
   auto &uyp = TF_getTmpField(sim,uy_N);
 
   double Re = sim.IOParamD["Re"];
+
+  double dt = sim.IOParamD["_TimeStep"];
+
+  double f = -2.0/Re;
   
   butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
 
@@ -107,38 +111,33 @@ TF_Func bool mmsRK(tf2::Simulation &sim)
   ux.at(0) = &uxp;
   uy.at(0) = &uyp;
 
-  tf2::oper_axpy(ux_N,uxp,-2/Re,0.0);
-  tf2::oper_axpy(uy_N,uyp,-2/Re,0.0);
- 
-  for(int i=1; i < s; ++i)
+  tf2::oper_copy(ux_N,uxp);
+  tf2::oper_copy(uy_N,uyp);
+
+  for(int i=2; i <= s; ++i)
   {
     auto &uxi = tf2::getOrCreateField(sim,ux_N.dim,"ux_"+std::to_string(i),"Nodes");
     auto &uyi = tf2::getOrCreateField(sim,ux_N.dim,"uy_"+std::to_string(i),"Nodes");
+    
+    ux.at(i-1) = &uxi;
+    uy.at(i-1) = &uyi; 
     
     tf2::oper_copy(ux_N, uxi);
     tf2::oper_copy(uy_N, uyi);
 
     for(int j=1; j<i; ++j)
     {
-      tf2::oper_axpy(*(ux.at(j-1)),uxi,A.at(id(i,j)),1.0);
-      tf2::oper_axpy(*(uy.at(j-1)),uyi,A.at(id(i,j)),1.0); 
+      tf2::oper_axpy(*(ux.at(j-1)),uxi,dt*f*A.at(id(i,j)),1.0);
+      tf2::oper_axpy(*(uy.at(j-1)),uyi,dt*f*A.at(id(i,j)),1.0); 
     }
-    
-    tf2::oper_axpy(uxi,uxi,-2/Re,0.0);
-    tf2::oper_axpy(uyi,uyi,-2/Re,0.0);
-
-    ux.at(i) = &uxi;
-    uy.at(i) = &uyi; 
   } 
 
   
   for(int i=0; i < s; ++i)
   {
-      tf2::oper_axpy(*(ux.at(i)),ux_N,b.at(i),1.0);
-      tf2::oper_axpy(*(uy.at(i)),uy_N,b.at(i),1.0); 
+      tf2::oper_axpy(*(ux.at(i)),ux_N,dt*f*b.at(i),1.0);
+      tf2::oper_axpy(*(uy.at(i)),uy_N,dt*f*b.at(i),1.0); 
   }
-
-  checkError(sim);
 
   return tf2::Iter_Continue;
 
