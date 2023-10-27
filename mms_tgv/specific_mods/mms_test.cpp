@@ -12,7 +12,7 @@ TF_Func void init_profile(tf2::Simulation &sim)
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, sin(x)*cos(y));
+        tf2::Vn result(dim, 0.5);
         return result;
     };
 
@@ -22,7 +22,7 @@ TF_Func void init_profile(tf2::Simulation &sim)
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, -1.0*cos(x)*sin(y));
+        tf2::Vn result(dim, -0.5);
         return result;
     };
     
@@ -51,7 +51,7 @@ TF_Func void checkError(tf2::Simulation &sim)
   {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(ux_anal.dim, sin(x)*cos(y));
+        tf2::Vn result(ux_anal.dim, 0.5);
         return result;
   };
 
@@ -63,7 +63,7 @@ TF_Func void checkError(tf2::Simulation &sim)
   {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(ux_anal.dim, -1.0*cos(x)*sin(y));
+        tf2::Vn result(ux_anal.dim, -0.5);
         return result;
   };
     
@@ -79,7 +79,8 @@ TF_Func void checkError(tf2::Simulation &sim)
 
   tf2::oper_axpy(uy,uy_anal,-1.0,1.0);
   tf2::oper_apply(uy_anal, [](double x) {return fabs(x);});
-  
+
+  tf2::info("ux=%.10f\n",tf2::oper_max(ux)[0]);
   tf2::info("t=%e\tERROR Ux = %e\nERROR Uy = %e\n",t,tf2::oper_max(ux_anal)[0],tf2::oper_max(uy_anal)[0]);
 }
 
@@ -89,9 +90,6 @@ TF_Func bool mmsRK(tf2::Simulation &sim)
   
   auto &ux_N = tf2::getField(sim,"ux_N");
   auto &uy_N = tf2::getField(sim,"uy_N");
-
-  auto &uxp = TF_getTmpField(sim,ux_N);
-  auto &uyp = TF_getTmpField(sim,uy_N);
 
   double Re = sim.IOParamD["Re"];
 
@@ -108,30 +106,27 @@ TF_Func bool mmsRK(tf2::Simulation &sim)
   std::vector<tf2::Field*> ux(s);
   std::vector<tf2::Field*> uy(s);
    
-  ux.at(0) = &uxp;
-  uy.at(0) = &uyp;
-
-  tf2::oper_copy(ux_N,uxp);
-  tf2::oper_copy(uy_N,uyp);
+  ux.at(0) = &ux_N;
+  uy.at(0) = &uy_N;
 
   for(int i=2; i <= s; ++i)
   {
     auto &uxi = tf2::getOrCreateField(sim,ux_N.dim,"ux_"+std::to_string(i),"Nodes");
     auto &uyi = tf2::getOrCreateField(sim,ux_N.dim,"uy_"+std::to_string(i),"Nodes");
     
-    ux.at(i-1) = &uxi;
-    uy.at(i-1) = &uyi; 
-    
     tf2::oper_copy(ux_N, uxi);
     tf2::oper_copy(uy_N, uyi);
 
-    for(int j=1; j<i; ++j)
+    for(int j=1; j<i; ++j) //sum for j=1 to i-1
     {
       tf2::oper_axpy(*(ux.at(j-1)),uxi,dt*f*A.at(id(i,j)),1.0);
       tf2::oper_axpy(*(uy.at(j-1)),uyi,dt*f*A.at(id(i,j)),1.0); 
     }
+  
+    ux.at(i-1) = &uxi;
+    uy.at(i-1) = &uyi; 
+  
   } 
-
   
   for(int i=0; i < s; ++i)
   {

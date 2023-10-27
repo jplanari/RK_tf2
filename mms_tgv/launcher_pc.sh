@@ -3,8 +3,8 @@
 #timesteps=("1.0" "1e-1" "1e-2" "1e-3" "1e-4")
 #schemes=("paramEuler" "heunRK2" "heunRK3" "stdRK4" "ps4p7q")
 
-timesteps=("1e-4")
-schemes=("ps4p7q")
+timesteps=("$1")
+schemes=("$2")
 
 
 for scheme in "${schemes[@]}"; do
