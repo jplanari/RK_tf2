@@ -10,6 +10,14 @@ void diffusive(tf2::Field &u, tf2::Field &diff, tf2::Simulation &sim)
     tf2::oper_prod(L, u, diff, visc);
 }
 
+void diffusive(tf2::Field &u, tf2::Field &diff, double visc, tf2::Simulation &sim)
+{
+    auto &L = tf2::getMatrix(sim, "Lap_NC");
+
+    // Diffusive_i = visc*lap(u_i)
+    tf2::oper_prod(L, u, diff, visc);
+}
+
 void convective(tf2::Field &u, tf2::Field &conv, tf2::Simulation &sim)
 {
     auto &DX  = tf2::getMatrix(sim, "DivX_FC");
