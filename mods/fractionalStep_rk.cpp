@@ -39,7 +39,7 @@ TF_Func void SetUp_Momentum_RK(tf2::Simulation &sim)
     const auto smesh = tf2::hasSMesh(sim);
    
     const auto &pMod = smesh? "smeshPatterns.so" : "patterns.so";
-const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
+    const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
     
     if (not tf2::hasMatrix(sim, "Id_NC"))
     {
@@ -55,21 +55,11 @@ const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
     tf2::getOrCreateField(sim, dim, "upredx_C",  cells);
     tf2::getOrCreateField(sim, dim, "upredy_C",  cells);
     tf2::getOrCreateField(sim, dim, "upredz_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uxdiff_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uydiff_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uzdiff_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uxdiff0_C", cells);
-    tf2::getOrCreateField(sim, dim, "uydiff0_C", cells);
-    tf2::getOrCreateField(sim, dim, "uzdiff0_C", cells);
-    tf2::getOrCreateField(sim, dim, "uxconv_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uyconv_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uzconv_C",  cells);
-    tf2::getOrCreateField(sim, dim, "uxconv0_C", cells);
-    tf2::getOrCreateField(sim, dim, "uyconv0_C", cells);
-    tf2::getOrCreateField(sim, dim, "uzconv0_C", cells);
+
     tf2::getOrCreateField(sim, dim, "momSrcx_C", cells);
     tf2::getOrCreateField(sim, dim, "momSrcy_C", cells);
     tf2::getOrCreateField(sim, dim, "momSrcz_C", cells);
+
     tf2::getOrCreateField(sim, dim, "P_C",       cells);
 
     tf2::getOrCreateField(sim, dim, "ux_F", faces);
@@ -81,10 +71,8 @@ const auto &kMod = smesh? "smeshInterpolators.so" : "interpolators.so";
     tf2::getOrCreateField(sim, dim, "uz0_N", nodes);
 }
 
-TF_Func bool RKiteration(tf2::Simulation &sim)
+void RKiteration(tf2::Simulation &sim, butcherTableau coefs)
 {
-    if(sim.IOParamD["_ElapsedTime"] >= sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
-
     auto &M     = tf2::getMatrix(sim, "Id_NC");
     auto &GX    = tf2::getMatrix(sim, "GradX_CF");
     auto &GY    = tf2::getMatrix(sim, "GradY_CF");
@@ -112,8 +100,6 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     
     auto &p      = tf2::getField(sim, "P_C");
     static auto psolver = tf2::getSolver(sim, "Pressure_Solver");
-
-    butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
 
     std::vector<double> b = coefs.b;
     std::vector<double> A = coefs.A;
@@ -279,16 +265,11 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
     tf2::oper_prod(ID_CN, upy, uy);
     tf2::oper_prod(ID_CN, upz, uz);
 
-    //printMaxVals("end of time-step",ux,uy,uz);
-
-    return tf2::Iter_Continue;
 }
 
 
-TF_Func bool RKiteration_energy(tf2::Simulation &sim)
+void RKiteration_energy(tf2::Simulation &sim, butcherTableau coefs)
 {
-    if(sim.IOParamD["_ElapsedTime"] >= sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
-
     auto &M     = tf2::getMatrix(sim, "Id_NC");
     auto &GX    = tf2::getMatrix(sim, "GradX_CF");
     auto &GY    = tf2::getMatrix(sim, "GradY_CF");
@@ -296,6 +277,7 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
     auto &ICF   = tf2::getMatrix(sim, "Interp_CF");
     auto &IFC   = tf2::getMatrix(sim, "Interp_FC");
     auto &ID_CN = tf2::getMatrix(sim, "Id_CN");
+    auto &INF   = tf2::getMatrix(sim, "Interp_NF");
     
     auto &ux     = tf2::getField(sim, "ux_N");
     auto &uy     = tf2::getField(sim, "uy_N");
@@ -321,9 +303,7 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
     auto &p      = tf2::getField(sim, "P_C");
     static auto psolver = tf2::getSolver(sim, "Pressure_Solver");
 
-    double lambda = 1.0; //change when set properly
-
-    butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
+    double lambda = sim.IOParamD["lambda"]; //change when set properly
 
     std::vector<double> b = coefs.b;
     std::vector<double> A = coefs.A;
@@ -414,11 +394,11 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
       tf2::oper_copy(uzn,upz);
 
       for(int j=0; j<i; ++j){
-        generateSourceTerm(0.0,*(Trk.at(j)),msx); 
+        generateSourceTerm(0.0,*(Trk.at(j)),msx,sim); 
         predictor(upx,upx,*(convx.at(j)),*(diffx.at(j)),msx,A.at(id(i+1,j+1)),dt,sim);
-        generateSourceTerm(1.0,*(Trk.at(j)),msy); 
+        generateSourceTerm(1.0,*(Trk.at(j)),msy,sim); 
         predictor(upy,upy,*(convy.at(j)),*(diffy.at(j)),msy,A.at(id(i+1,j+1)),dt,sim);
-        generateSourceTerm(0.0,*(Trk.at(j)),msz); 
+        generateSourceTerm(0.0,*(Trk.at(j)),msz,sim); 
         predictor(upz,upz,*(convz.at(j)),*(diffz.at(j)),msz,A.at(id(i+1,j+1)),dt,sim);
       }
       
@@ -495,11 +475,11 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
     tf2::oper_copy(uzn,upz);
     
     for(int i = 0; i < s; ++i){ 
-      generateSourceTerm(0.0,*(Trk.at(i)),msx); 
+      generateSourceTerm(0.0,*(Trk.at(i)),msx,sim); 
       predictor(upx,upx,*(convx.at(i)),*(diffx.at(i)),msx,b.at(i),dt,sim);
-      generateSourceTerm(1.0,*(Trk.at(i)),msy); 
+      generateSourceTerm(1.0,*(Trk.at(i)),msy,sim); 
       predictor(upy,upy,*(convy.at(i)),*(diffy.at(i)),msy,b.at(i),dt,sim);
-      generateSourceTerm(0.0,*(Trk.at(i)),msz); 
+      generateSourceTerm(0.0,*(Trk.at(i)),msz,sim); 
       predictor(upz,upz,*(convz.at(i)),*(diffz.at(i)),msz,b.at(i),dt,sim);
     }
 
@@ -533,6 +513,20 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
     tf2::oper_prod(ID_CN, Tc, T);
 
     //printMaxVals("end of time-step",ux,uy,uz);
+}
 
-    return tf2::Iter_Continue;
+TF_Func bool runRK(tf2::Simulation &sim)
+{
+  static bool first = true;
+  if(first){
+    RKiteration(sim,intScheme("paramEuler"));
+    first = false;
+  }
+
+  if(sim.IOParamD["_ElapsedTime"]>sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
+
+  RKiteration(sim,intScheme(sim.IOParamS["RKmethod"]));
+
+  return tf2::Iter_Continue;
+
 }

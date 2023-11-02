@@ -67,7 +67,7 @@ TF_Func void init_profile_ux(tf2::Simulation &sim)
     {
         // We want to apply the same profile for all components / simulations,
         // so we just replicate it 'dim' times.
-        tf2::Vn result(dim, Ub*y/d*(2.0-y/d)+0.05*Ub*my_rand0(.1));
+        tf2::Vn result(dim, Ub*y/d*(2.0-y/d)+0.01*Ub*my_rand0(.1));
         return result;
     };
     tf2::initField(sim, "ux_N", profile);
@@ -222,8 +222,9 @@ TF_Func bool monitor(tf2::Simulation &sim)
               tf2::oper_solve_residual(s),max_x);
     }
     
-    if(!steady_state) steady_state = rollingSteadyState(max_x,100,sim);
-   
+    if(!steady_state){ steady_state = rollingSteadyState(max_x,100,sim);
+      if(steady_state) tf2::info("Steady state achieved\n");
+    }
     }
     return tf2::Iter_Continue;
 }
