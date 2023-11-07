@@ -203,8 +203,11 @@ void averageXZ(tf2::Simulation &sim)
     const auto &avgw = allReduce(avgwL, MPI_SUM);
     const auto &volumes = allReduce(volumesL, MPI_SUM);
     const auto &y = allReduce(yL, MPI_MAX);
+    const auto Re = sim.IOParamD["Re_tau"];
+    const auto fct = sim.IOParamD["RKfct"];
+    const auto method = sim.IOParamS["RKmethod"];
     {
-    std::ofstream out("results/profile_"+outP+"_cells_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_cells_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ uavg wavg pavg\n";
     out<<std::scientific<<std::setprecision(8);
@@ -249,7 +252,7 @@ void averageXZ(tf2::Simulation &sim)
     const auto &areas = allReduce(areasL, MPI_SUM);
     const auto &yf = allReduce(yfL, MPI_MAX);
     {
-    std::ofstream out("results/profile_"+outP+"_faces_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_faces_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ duavg/dy dwavg/dy\n";
     out<<std::scientific<<std::setprecision(8);
@@ -360,9 +363,12 @@ void ReynoldsStresses(tf2::Simulation &sim)
     const auto &avgR_vw = allReduce(avgLR_vw, MPI_SUM);
     const auto &avgR_ww = allReduce(avgLR_ww, MPI_SUM);
     const auto &volumes = allReduce(volumesL, MPI_SUM);
+    const auto Re = sim.IOParamD["Re_tau"];
+    const auto fct = sim.IOParamD["RKfct"];
+    const auto method = sim.IOParamS["RKmethod"];
     const auto &y = allReduce(yL, MPI_MAX);
     {
-    std::ofstream out("results/reystress_"+outP+"_"+std::to_string(NY)+".dat");
+    std::ofstream out("results/reyStress_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_faces_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ R_uu R_vv R_ww R_uv R_uw R_vw\n";
     out<<std::scientific<<std::setprecision(8);
