@@ -2,6 +2,7 @@
 #include "tf2/Simulation.h"
 
 #include <vector>
+#include <fstream>
 
 void setup_cfl(tf2::Simulation &sim)
 {
@@ -86,6 +87,29 @@ TF_Func void init_profile_ux(tf2::Simulation &sim)
     tf2::oper_prod(INF,ux,uxf);
     tf2::oper_prod(INF,uy,uyf);
     tf2::oper_prod(INF,uz,uzf);
+}
+
+void printPhi(tf2::Simulation &sim)
+{
+  std::string Re = std::to_string(sim.IOParamD["Re_tau"]);
+  std::string Rkfct = std::to_string(sim.IOParamD["RKfct"]);
+  std::string RKmethod = sim.IOParamS["RKmethod"];
+
+  std::string filename = "results/phi_Re_tau-"+Re+"_RKfct-"+Rkfct+"_"+RKmethod+".dat";
+  std::ofstream file;
+
+  static bool first = true;
+  if (first) {
+    file.open(filename);
+    first = false;
+  }
+  else
+    file.open(filename,std::ios::app);
+  
+  if (file.is_open()){
+    file << sim.IOParamI["_Iter"] << "\t" << atan(sim.IOParamD["_EVimag"]/sim.IOParamD["_EVreal"]) << std::endl; 
+    file.close();;
+  }
 }
 
 TF_Func void init_omega(tf2::Simulation &sim)
@@ -213,6 +237,7 @@ TF_Func bool monitor(tf2::Simulation &sim)
     double max_x;
     if (sim.IOParamI["_Iter"]%10 == 0)
     {
+    printPhi(sim);
     auto &ux = tf2::getField(sim, "ux_N");
     max_x = std::max(fabs(tf2::oper_max(ux)[0]), fabs(tf2::oper_min(ux)[0]));
     static auto s = tf2::getSolver(sim, "Pressure_Solver");
