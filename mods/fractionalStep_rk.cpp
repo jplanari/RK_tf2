@@ -71,8 +71,10 @@ TF_Func void SetUp_Momentum_RK(tf2::Simulation &sim)
     tf2::getOrCreateField(sim, dim, "uz0_N", nodes);
 }
 
-void RKiteration(tf2::Simulation &sim, butcherTableau coefs)
+TF_Func bool RKiteration(tf2::Simulation &sim)
 {
+    if(sim.IOParamD["_ElapsedTime"]>sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
+    
     auto &M     = tf2::getMatrix(sim, "Id_NC");
     auto &GX    = tf2::getMatrix(sim, "GradX_CF");
     auto &GY    = tf2::getMatrix(sim, "GradY_CF");
@@ -100,6 +102,8 @@ void RKiteration(tf2::Simulation &sim, butcherTableau coefs)
     
     auto &p      = tf2::getField(sim, "P_C");
     static auto psolver = tf2::getSolver(sim, "Pressure_Solver");
+    
+    butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
 
     std::vector<double> b = coefs.b;
     std::vector<double> A = coefs.A;
@@ -265,11 +269,14 @@ void RKiteration(tf2::Simulation &sim, butcherTableau coefs)
     tf2::oper_prod(ID_CN, upy, uy);
     tf2::oper_prod(ID_CN, upz, uz);
 
+    return tf2::Iter_Continue;
 }
 
 
-void RKiteration_energy(tf2::Simulation &sim, butcherTableau coefs)
+TF_Func bool RKiteration_energy(tf2::Simulation &sim)
 {
+    if(sim.IOParamD["_ElapsedTime"]>sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
+    
     auto &M     = tf2::getMatrix(sim, "Id_NC");
     auto &GX    = tf2::getMatrix(sim, "GradX_CF");
     auto &GY    = tf2::getMatrix(sim, "GradY_CF");
@@ -302,6 +309,7 @@ void RKiteration_energy(tf2::Simulation &sim, butcherTableau coefs)
     
     auto &p      = tf2::getField(sim, "P_C");
     static auto psolver = tf2::getSolver(sim, "Pressure_Solver");
+    butcherTableau coefs = intScheme(sim.IOParamS["RKmethod"]);
 
     double lambda = sim.IOParamD["lambda"]; //change when set properly
 
@@ -512,21 +520,8 @@ void RKiteration_energy(tf2::Simulation &sim, butcherTableau coefs)
 
     tf2::oper_prod(ID_CN, Tc, T);
 
+    return tf2::Iter_Continue;
     //printMaxVals("end of time-step",ux,uy,uz);
 }
 
-TF_Func bool runRK(tf2::Simulation &sim)
-{
-  static bool first = true;
-  if(first){
-    RKiteration(sim,intScheme("paramEuler"));
-    first = false;
-  }
 
-  if(sim.IOParamD["_ElapsedTime"]>sim.IOParamD["_MaxTime"]) return tf2::Iter_Stop;
-
-  RKiteration(sim,intScheme(sim.IOParamS["RKmethod"]));
-
-  return tf2::Iter_Continue;
-
-}
