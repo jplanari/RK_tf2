@@ -121,7 +121,7 @@ TF_Func void computeEV_Gershgorin(tf2::Simulation &sim)
     tf2::oper_prod(INF,uy_N,uy_f);
     tf2::oper_prod(INF,uz_N,uz_f);
 
-    double kinVisc = 1.0/sim.IOParamD["Re"];
+    double kinVisc = sim.IOParamD["kinVisc"];
 
     double gershContImag;
     double gershContReal;
@@ -271,7 +271,7 @@ TF_Func void computeEV_GershgorinMat(tf2::Simulation &sim)
 
     double kinVisc = sim.IOParamD["kinVisc"];
 
-    sim.IOParamD["_EVreal"] = 2.0*kinVisc*tf2::oper_max(gg)[0];
+    sim.IOParamD["_EVreal"] = 2.0*kinVisc*tf2::max(tf2::oper_max(gg));
 
     // tmp_F = (A*|u·n|)_F
     tf2::oper_fmadd(ux_f, nx, tmp, 1.0, 0.0);
@@ -285,7 +285,7 @@ TF_Func void computeEV_GershgorinMat(tf2::Simulation &sim)
     tf2::oper_prod(SF, tmp, gg);
     tf2::oper_div(gg, vol);
 
-    sim.IOParamD["_EVimag"] = 0.5*tf2::oper_max(gg)[0];
+    sim.IOParamD["_EVimag"] = 0.5*tf2::max(tf2::oper_max(gg));
 }
 
 TF_Func void computeRealEV_GershgorinMat(tf2::Simulation &sim)

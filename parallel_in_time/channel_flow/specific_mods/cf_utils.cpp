@@ -215,6 +215,7 @@ TF_Func bool monitor(tf2::Simulation &sim)
     if (sim.IOParamI["_Iter"]%10 == 0)
     {
     static auto s = tf2::getSolver(sim, "Pressure_Solver");
+    tf2::info("real=%e, imag=%e\n",sim.IOParamD["_EVreal"],sim.IOParamD["_EVimag"]);
     tf2::info("%d %.8e %.5e %.5e %.5e\n",
               sim.IOParamI["_Iter"], runTime(sim),
               sim.IOParamD["_TimeStep"], sim.IOParamD["_ElapsedTime"],
