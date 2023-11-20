@@ -11,10 +11,10 @@ tf2::Field &getFaceNc(tf2::Simulation &sim, uint32_t comp, const std::string &me
 {
     const std::string name = "_FaceNormal"+std::to_string(comp);
     if (tf2::hasField(sim, name)) return tf2::getField(sim, name);
-
+    const auto dim = tf2::getField(sim,"ux_N").dim;
     const auto &msuf  = tf2::meshSuffix(meshName);
     const auto &domain = "Faces"+msuf;
-    auto &result = tf2::newField(sim, 1, name, domain);
+    auto &result = tf2::newField(sim, dim, name, domain);
 
     uint32_t resultSize = tf2::getNumEntries(result);
     std::vector<double> buffer(resultSize);
@@ -63,7 +63,9 @@ tf2::Field &getFaceArea(tf2::Simulation &sim, const std::string &meshName = "")
 
     const auto &msuf  = tf2::meshSuffix(meshName);
     const auto &domain = "Faces"+msuf;
-    auto &result = tf2::newField(sim, 1, name, domain);
+    const auto dim = tf2::getField(sim,"ux_N").dim;
+
+    auto &result = tf2::newField(sim, dim, name, domain);
 
     uint32_t resultSize = tf2::getNumEntries(result);
     std::vector<double> buffer(resultSize);
@@ -96,7 +98,8 @@ tf2::Field &getFaceInnerMask(tf2::Simulation &sim, const std::string &meshName =
 
     const auto &msuf  = tf2::meshSuffix(meshName);
     const auto &domain = "Faces"+msuf;
-    auto &result = tf2::newField(sim, 1, "_FaceInnerMask", domain);
+    const auto dim = tf2::getField(sim,"ux_N").dim;
+    auto &result = tf2::newField(sim, dim, "_FaceInnerMask", domain);
 
     uint32_t resultSize = tf2::getNumEntries(result);
     std::vector<double> buffer(resultSize);
@@ -129,7 +132,9 @@ tf2::Field &getNodeVolume(tf2::Simulation &sim, const std::string &meshName = ""
 
     const auto &msuf  = tf2::meshSuffix(meshName);
     const auto &domain = "Nodes"+msuf;
-    auto &result = tf2::newField(sim, 1, "_NodeVolume", domain);
+    const auto dim = tf2::getField(sim,"ux_N").dim;
+
+    auto &result = tf2::newField(sim, dim, "_NodeVolume", domain);
 
     uint32_t resultSize = tf2::getNumEntries(result);
     std::vector<double> buffer(resultSize);
@@ -173,7 +178,8 @@ tf2::Field &getCellVolume(tf2::Simulation &sim, const std::string &meshName = ""
 
     const auto &msuf  = tf2::meshSuffix(meshName);
     const auto &domain = "Cells"+msuf;
-    auto &result = tf2::newField(sim, 1, "_CellVolume", domain);
+    const auto dim = tf2::getField(sim,"ux_N").dim;
+    auto &result = tf2::newField(sim, dim, "_CellVolume", domain);
 
     uint32_t resultSize = tf2::getNumEntries(result);
     std::vector<double> buffer(resultSize);

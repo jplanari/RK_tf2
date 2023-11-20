@@ -200,7 +200,6 @@ bool rollingSteadyState(double max_x, int window_size, tf2::Simulation &sim)
 TF_Func bool monitor(tf2::Simulation &sim)
 {
     static bool first = true;
-    static bool steady_state = false;
     const uint32_t ndim = tf2::getField(sim,"ux_N").dim;
     if (ndim>1){
     if (first)
@@ -245,10 +244,6 @@ TF_Func bool monitor(tf2::Simulation &sim)
               sim.IOParamI["_Iter"], runTime(sim),
               sim.IOParamD["_TimeStep"], sim.IOParamD["_ElapsedTime"],
               tf2::oper_solve_residual(s),max_x);
-    }
-    
-    if(!steady_state){ steady_state = rollingSteadyState(max_x,100,sim);
-      if(steady_state) tf2::info("Steady state achieved\n");
     }
     }
     return tf2::Iter_Continue;

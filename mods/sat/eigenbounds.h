@@ -11,7 +11,7 @@ double computeUFaceContributionGershgorin_real(tf2::UMesh &m, mt::FaceIdT f, mt:
         tf2::V3 dvec = cntr-cntr_nb;
         real = fabs(m.getFaceArea(f)/(dvec*m.getFaceNormal(f,c)));
     }
-    return real;
+    return tf2::max(real);
 }
 
 double computeSFaceContributionGershgorin_real(tf2::SMesh &m, tf2::IJK F, tf2::IJK C, tf2::IJK CNB)
@@ -22,12 +22,12 @@ double computeSFaceContributionGershgorin_real(tf2::SMesh &m, tf2::IJK F, tf2::I
     auto fnv = tf2::calcFaceNormal(m,F);
     double area = fnv*tf2::calcCellFacesArea(m,C);
 
-    return fabs(area/(dvec*fnv));
+    return tf2::max(fabs(area/(dvec*fnv)));
 }
 
 double computeFaceContributionGershgorin_imag(tf2::V3 fnv, tf2::V3 uf, double Af)
 {
-    return 0.5*fabs(fnv*uf)*Af;
+    return tf2::max(0.5*fabs(fnv*uf)*Af);
 }
 
 void computeImagEV_Gershgorin(tf2::Simulation &sim)
@@ -360,7 +360,7 @@ TF_Func void computeRealEV_GershgorinMat(tf2::Simulation &sim)
     tf2::oper_div(gg, vol);
 
     double kinVisc = 1.0/sim.IOParamD["Re"];
-    sim.IOParamD["_EVreal"] = 2.0*kinVisc*tf2::oper_max(gg)[0];
+    sim.IOParamD["_EVreal"] = tf2::max(2.0*kinVisc*tf2::oper_max(gg));
 }
 
 TF_Func bool computeImagEV_GershgorinMat(tf2::Simulation &sim)
@@ -398,7 +398,7 @@ TF_Func bool computeImagEV_GershgorinMat(tf2::Simulation &sim)
     tf2::oper_prod(SF, tmp, gg);
     tf2::oper_div(gg, vol);
 
-    sim.IOParamD["_EVimag"] = 0.5*tf2::oper_max(gg)[0];
+    sim.IOParamD["_EVimag"] = tf2::max(0.5*tf2::oper_max(gg));
 
     return tf2::Iter_Continue;
 }

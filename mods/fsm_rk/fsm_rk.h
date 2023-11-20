@@ -25,7 +25,7 @@ void projection(tf2::Field &uf, tf2::Field &p, tf2::Matrix &G)
 
 void projection(tf2::Field &up, tf2::Field &p, tf2::Matrix &G, tf2::Matrix &IFC, tf2::Simulation &sim)
 {
-    auto &Gp = TF_getTmpField(sim,1,"Faces");
+    auto &Gp = TF_getTmpField(sim,up.dim,"Faces");
     tf2::oper_prod(G,p,Gp);
     tf2::oper_prod(IFC,Gp,up,-1.0,1.0);
 }
