@@ -72,7 +72,8 @@ TF_Func bool Iter_SAT_Gershgorin_efficiency(tf2::Simulation &sim)
 
 TF_Func void SetUp_SAT_GershgorinMat_efficiency(tf2::Simulation &sim)
 {
-  computeEV_GershgorinMat(sim);
+  computeRealEV_GershgorinMat(sim);
+  computeImagEV_GershgorinMat(sim);
 	computeDT_efficiency(sim);
 }
 

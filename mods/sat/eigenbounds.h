@@ -11,7 +11,7 @@ double computeUFaceContributionGershgorin_real(tf2::UMesh &m, mt::FaceIdT f, mt:
         tf2::V3 dvec = cntr-cntr_nb;
         real = fabs(m.getFaceArea(f)/(dvec*m.getFaceNormal(f,c)));
     }
-    return tf2::max(real);
+    return real;
 }
 
 double computeSFaceContributionGershgorin_real(tf2::SMesh &m, tf2::IJK F, tf2::IJK C, tf2::IJK CNB)
@@ -22,12 +22,12 @@ double computeSFaceContributionGershgorin_real(tf2::SMesh &m, tf2::IJK F, tf2::I
     auto fnv = tf2::calcFaceNormal(m,F);
     double area = fnv*tf2::calcCellFacesArea(m,C);
 
-    return tf2::max(fabs(area/(dvec*fnv)));
+    return fabs(area/(dvec*fnv));
 }
 
 double computeFaceContributionGershgorin_imag(tf2::V3 fnv, tf2::V3 uf, double Af)
 {
-    return tf2::max(0.5*fabs(fnv*uf)*Af);
+    return 0.5*fabs(fnv*uf)*Af;
 }
 
 void computeImagEV_Gershgorin(tf2::Simulation &sim)
@@ -214,130 +214,18 @@ TF_Func void computeEV_Gershgorin(tf2::Simulation &sim)
     sim.IOParamD["_EVimag"] = tf2::allReduce(evi, MPI_MAX);
 }
 
-TF_Func void computeEV_GershgorinMat(tf2::Simulation &sim)
-{
-    auto &ux_f = tf2::getField(sim, "ux_F");
-    auto &uy_f = tf2::getField(sim, "uy_F");
-    auto &uz_f = tf2::getField(sim, "uz_F");
-
-    auto &SF  = tf2::getMatrix(sim, "SumFaces");
-
-    std::vector<double> bufferd(tf2::getNumEntries(ux_f));
-    if (tf2::hasSMesh(sim))
-    {
-        const auto &m = tf2::getSMesh(sim);
-        for (uint32_t it = 0; it < tf2::getNumFaces(m); it++)
-        {
-            const auto F = tf2::getFaceIJKFromId(m, it);
-            const auto n = tf2::calcFaceNormal(m, F);
-            if (tf2::isBoundaryFace(m, F))
-            {
-                const auto A = tf2::calcCellDim(m, F);
-                bufferd[it] = 0.5*fabs(A*n);
-            }
-            else
-            {
-                const auto O = tf2::getOtherCellIJKFromFace(m, F);
-                bufferd[it] = tf2::calcCellDist(m, F.i, F.j, F.k, O.i, O.j, O.k);
-            }
-        }
-    }
-    else
-    {
-        // ...
-    }
-
-    auto &dn   = TF_getTmpField(sim, ux_f);
-    tf2::oper_setData(dn, bufferd.data());
-
-    auto &nx  = getFaceNx(sim);
-    auto &ny  = getFaceNy(sim);
-    auto &nz  = getFaceNz(sim);
-    auto &af  = getFaceArea(sim);
-    auto &fim = getFaceInnerMask(sim);
-    auto &vol = getCellVolume(sim);
-
-    auto &tmp = TF_getTmpField(sim, ux_f);
-    auto &gg  = TF_getTmpField(sim, SF, tmp);
-
-    // tmp_F = (A/|d*n|)_F
-    tf2::oper_copy(af, tmp);
-    tf2::oper_div(tmp, dn);
-    tf2::oper_prod(fim, tmp);
-
-    // gg_C = sum(faces) tmp_f
-    tf2::oper_prod(SF, tmp, gg);
-    tf2::oper_div(gg, vol);
-
-    double kinVisc = sim.IOParamD["kinVisc"];
-
-    sim.IOParamD["_EVreal"] = 2.0*kinVisc*tf2::max(tf2::oper_max(gg));
-
-    // tmp_F = (A*|u·n|)_F
-    tf2::oper_fmadd(ux_f, nx, tmp, 1.0, 0.0);
-    tf2::oper_fmadd(uy_f, ny, tmp, 1.0, 1.0);
-    tf2::oper_fmadd(uz_f, nz, tmp, 1.0, 1.0);
-    tf2::oper_max(tmp, tmp, 1.0, -1.0);
-    tf2::oper_prod(af, tmp);
-    tf2::oper_prod(fim, tmp);
-
-    // gg_C = sum(faces) tmp_f
-    tf2::oper_prod(SF, tmp, gg);
-    tf2::oper_div(gg, vol);
-
-    sim.IOParamD["_EVimag"] = 0.5*tf2::max(tf2::oper_max(gg));
-}
-
 TF_Func void computeRealEV_GershgorinMat(tf2::Simulation &sim)
 {
     // NOTE: since this depends on the geometry only, it can be calculated once
     // at the start of the simulation.
-    
-    auto &af  = getFaceArea(sim);
-    auto &fim = getFaceInnerMask(sim);
-    auto &vol = getCellVolume(sim);
 
-    // Calculate |d*n| for each face, where d is the distance between the
-    // neighbour cell centroids (or the distance between the centroid of the
-    // face itself and the centroid of the only neighbour cell), and n is the
-    // normal of the face. Because we are calculating an absolute value, we do
-    // not care about the sign of the normal.
-    std::vector<double> bufferd(tf2::getNumEntries(af));
-    if (tf2::hasSMesh(sim))
-    {
-        const auto &m = tf2::getSMesh(sim);
-        for (uint32_t it = 0; it < tf2::getNumFaces(m); it++)
-        {
-            const auto F = tf2::getFaceIJKFromId(m, it);
-            const auto n = tf2::calcFaceNormal(m, F);
-            if (tf2::isBoundaryFace(m, F))
-            {
-                const auto A = tf2::calcCellDim(m, F);
-                bufferd[it] = 0.5*fabs(A*n);
-            }
-            else
-            {
-                const auto O = tf2::getOtherCellIJKFromFace(m, F);
-                bufferd[it] = tf2::calcCellDist(m, F.i, F.j, F.k, O.i, O.j, O.k);
-            }
-        }
-    }
-    else
-    {
-        const auto &mesh = tf2::getUMesh(sim);
-        uint32_t it = 0;
-        for (auto f : mesh.getFacesRange())
-        {
-            auto n = mesh.getFaceNormal(f);
-            auto nbs = mesh.getFaceNbCells(f);
-            auto cen = mesh.getCellCentroid(nbs.first);
-            auto ocen = (nbs.second == mt::CellIdT::None) ? mesh.getFaceCentroid(f) : mesh.getCellCentroid(nbs.second);
-            bufferd[it++] = fabs(n*(cen-ocen));
-        }
-    }
+    auto &ux_N = tf2::getField(sim, "ux_N");
+    uint32_t dim = ux_N.dim;
 
-    auto &dn   = TF_getTmpField(sim, af);
-    tf2::oper_setData(dn, bufferd.data());
+    auto &vol = tf2::meshCellVolume(sim, dim);
+    auto &af  = tf2::meshFaceArea(sim, dim);
+    auto &dn  = tf2::meshFaceCellDist(sim, dim);
+    auto &fim = tf2::meshFaceInnerMask(sim, dim);
 
     auto &SF  = tf2::getMatrix(sim, "SumFaces");
 
@@ -359,22 +247,34 @@ TF_Func void computeRealEV_GershgorinMat(tf2::Simulation &sim)
     tf2::oper_prod(SF, tmp, gg);
     tf2::oper_div(gg, vol);
 
-    double kinVisc = 1.0/sim.IOParamD["Re"];
-    sim.IOParamD["_EVreal"] = tf2::max(2.0*kinVisc*tf2::oper_max(gg));
+    double kinVisc = sim.IOParamD["kinVisc"];
+    sim.IOParamD["_EVreal"] = kinVisc*tf2::max(tf2::oper_max(gg));
 }
 
 TF_Func bool computeImagEV_GershgorinMat(tf2::Simulation &sim)
 {
+    // NOTE: since this depends on the velocity field, it has to be updated
+    // every iteration.
+
     auto &ux_f = tf2::getField(sim, "ux_F");
     auto &uy_f = tf2::getField(sim, "uy_F");
     auto &uz_f = tf2::getField(sim, "uz_F");
 
-    auto &nx  = getFaceNx(sim);
-    auto &ny  = getFaceNy(sim);
-    auto &nz  = getFaceNz(sim);
-    auto &af  = getFaceArea(sim);
-    auto &fim = getFaceInnerMask(sim);
-    auto &vol = getCellVolume(sim);
+    // In a real simulation using the fractional step method, we will have the
+    // velocity at the faces already, so we just get it. There is no need to
+    // interpolate the velocity from the nodes.
+    // auto &ux_f = tf2::getField(sim, "ux_F");
+    // auto &uy_f = tf2::getField(sim, "uy_F");
+    // auto &uz_f = tf2::getField(sim, "uz_F");
+
+    uint32_t dim = ux_f.dim;
+
+    auto &nx  = tf2::meshFaceNx(sim, dim);
+    auto &ny  = tf2::meshFaceNy(sim, dim);
+    auto &nz  = tf2::meshFaceNz(sim, dim);
+    auto &af  = tf2::meshFaceArea(sim, dim);
+    auto &fim = tf2::meshFaceInnerMask(sim, dim);
+    auto &vol = tf2::meshCellVolume(sim, dim);
 
     auto &SF  = tf2::getMatrix(sim, "SumFaces");
     auto &tmp = TF_getTmpField(sim, ux_f);
@@ -398,8 +298,7 @@ TF_Func bool computeImagEV_GershgorinMat(tf2::Simulation &sim)
     tf2::oper_prod(SF, tmp, gg);
     tf2::oper_div(gg, vol);
 
-    sim.IOParamD["_EVimag"] = tf2::max(0.5*tf2::oper_max(gg));
-
+    sim.IOParamD["_EVimag"] = 0.5*tf2::max(tf2::oper_max(gg));
     return tf2::Iter_Continue;
 }
 
