@@ -224,7 +224,7 @@ TF_Func void computeRealEV_GershgorinMat(tf2::Simulation &sim)
 
     auto &vol = tf2::meshCellVolume(sim, dim);
     auto &af  = tf2::meshFaceArea(sim, dim);
-    auto &dn  = tf2::meshFaceCellDist(sim, dim);
+    auto &dn  = faceCellDist(sim);
     auto &fim = tf2::meshFaceInnerMask(sim, dim);
 
     auto &SF  = tf2::getMatrix(sim, "SumFaces");
@@ -307,7 +307,7 @@ tf2::Field &computeLambdaTilde(tf2::Simulation &sim)
     auto dim = tf2::getField(sim,"ux_N").dim;
     auto &result = tf2::getOrCreateField(sim, dim, "Lambda", "Faces");
     
-    auto &af = getFaceArea(sim);
+    auto &af = tf2::meshFaceArea(sim,dim);
     auto &vol = calcFaceStaggeredVolumes(sim);
     
 
@@ -320,15 +320,16 @@ tf2::Field &computeLambdaTilde(tf2::Simulation &sim)
 
 tf2::Field &computeAbsMassFluxes(tf2::Simulation &sim)
 {
-    auto dim = tf2::getField(sim,"ux_N").dim;
     auto &ux_f = tf2::getField(sim, "ux_F");
     auto &uy_f = tf2::getField(sim, "uy_F");
     auto &uz_f = tf2::getField(sim, "uz_F");
+    auto dim = ux_f.dim;
 
-    auto &nx  = getFaceNx(sim);
-    auto &ny  = getFaceNy(sim);
-    auto &nz  = getFaceNz(sim);
-    auto &af  = getFaceArea(sim);
+    auto &nx  = tf2::meshFaceNx(sim,dim);
+    auto &ny  = tf2::meshFaceNy(sim,dim);
+    auto &nz  = tf2::meshFaceNz(sim,dim);
+    auto &af  = tf2::meshFaceArea(sim,dim);
+
     auto &result = tf2::getOrCreateField(sim, dim, "Fs", "Faces");
     
     tf2::oper_fmadd(ux_f, nx, result, 1.0, 0.0);

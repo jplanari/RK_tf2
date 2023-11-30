@@ -204,10 +204,11 @@ void averageXZ(tf2::Simulation &sim)
     const auto &volumes = allReduce(volumesL, MPI_SUM);
     const auto &y = allReduce(yL, MPI_MAX);
     const auto Re = sim.IOParamD["Re_tau"];
+    const auto nsims = sim.IOParamI["nSims"];
     const auto fct = sim.IOParamD["RKfct"];
     const auto method = sim.IOParamS["RKmethod"];
     {
-    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_cells_"+method+".dat");
+    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_nSims"+std::to_string(nsims)+"_cells_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ uavg wavg pavg\n";
     out<<std::scientific<<std::setprecision(8);
@@ -252,7 +253,7 @@ void averageXZ(tf2::Simulation &sim)
     const auto &areas = allReduce(areasL, MPI_SUM);
     const auto &yf = allReduce(yfL, MPI_MAX);
     {
-    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_faces_"+method+".dat");
+    std::ofstream out("results/profile_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_nSims"+std::to_string(nsims)+"_faces_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ duavg/dy dwavg/dy\n";
     out<<std::scientific<<std::setprecision(8);
@@ -365,10 +366,11 @@ void ReynoldsStresses(tf2::Simulation &sim)
     const auto &volumes = allReduce(volumesL, MPI_SUM);
     const auto Re = sim.IOParamD["Re_tau"];
     const auto fct = sim.IOParamD["RKfct"];
+    const auto nsims = sim.IOParamI["nSims"];
     const auto method = sim.IOParamS["RKmethod"];
     const auto &y = allReduce(yL, MPI_MAX);
     {
-    std::ofstream out("results/reyStress_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_faces_"+method+".dat");
+    std::ofstream out("results/reyStress_Re"+std::to_string(Re)+"_fct"+std::to_string(fct)+"_nSims_"+std::to_string(nsims)+"_faces_"+method+".dat");
     TF_uAssert(out.is_open(), "could not open filename for output");
     out<<"#y y+ R_uu R_vv R_ww R_uv R_uw R_vw\n";
     out<<std::scientific<<std::setprecision(8);
@@ -424,8 +426,6 @@ void ensemble_avg(tf2::Simulation &sim)
     auto &uyuy = tf2::getField(sim, "avg(uy_N*uy_N)");
     auto &uyuz = tf2::getField(sim, "avg(uy_N*uz_N)");
     auto &uzuz = tf2::getField(sim, "avg(uz_N*uz_N)");
-
-
 
     auto &ensAvg_ux = tf2::getOrCreateField(sim, 1, "ens_avg(ux)", "Nodes");
     auto &ensAvg_uy = tf2::getOrCreateField(sim, 1, "ens_avg(uy)", "Nodes");

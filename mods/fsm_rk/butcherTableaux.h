@@ -75,6 +75,17 @@ butcherTableau wrayRK3(void)
     fillMethod(ns,method,b,A);
     return method;
 }
+
+butcherTableau nystromRK3(void)
+{
+    long unsigned int ns=3;
+    butcherTableau method;
+    std::vector<double> b = {0.25,3.0/8.0,3./8.0};
+    std::vector<double> A = {1./3.0,0.0,2./3.0};
+    fillMethod(ns,method,b,A);
+    return method;
+}
+
 butcherTableau heunRK3(void)
 {
     long unsigned int ns=3;
