@@ -34,12 +34,12 @@ double advanceRungeKutta(double phi, butcherTableau method, double h)
 int main(int argc, char** argv){
   std::string schemeName = argv[1];
   butcherTableau method = intScheme(schemeName);
-  displayMethod(method);
+//  displayMethod(method);
   double h = atof(argv[2]);
   double phi0 = 1.0;
   double phi=phi0;
   int N = atoi(argv[3]);
-  std::string filename = schemeName+"/testPositivity_"+schemeName+"_h_"+argv[2]+"_N_"+argv[3]+".dat";
+  std::string filename = "results/"+schemeName+"/testPositivity_"+schemeName+"_h_"+argv[2]+"_N_"+argv[3]+".dat";
   std::ofstream file;
   file.open(filename);
   file << 0*h << "\t" << phi0 << std::endl; 
@@ -48,7 +48,6 @@ int main(int argc, char** argv){
       phi = advanceRungeKutta(phi,method,h);
       file << (k+1)*h << "\t" << phi << std::endl;
     }
-    std::cout << "Integration completed." << std::endl;
     return 1;
   }
   else

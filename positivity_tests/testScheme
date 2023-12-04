@@ -1,0 +1,55 @@
+#!/bin/bash
+
+hs=("0.1" "0.2" "0.4" "0.8" "1.6" "2.4" "3.2" "4.0")
+total_hs="${#hs[@]}"
+scheme=$1
+tmax=$2
+
+if [ ! -d "results" ]; then
+  mkdir "results"
+fi
+
+if [ ! -d "results/$scheme" ]; then
+  mkdir "results/$scheme"
+fi
+
+if [ ! -d "plots" ]; then
+  mkdir "plots"
+fi
+
+g++ -O3 test.cpp -o testPositivity
+
+for h in "${hs[@]}"; do
+  Nf=$(echo "scale=1; $tmax / $h" | bc) 
+  N=$(awk -v var="$Nf" 'BEGIN { printf "%.0f\n", var }')
+  ./testPositivity $scheme $h $N
+done
+
+gnuplot_script="results/${scheme}/plot_script_$scheme.gp"
+
+N0f=$(echo "scale=1; $tmax / ${hs[0]}" | bc)
+N0=$(awk -v var="$N0f" 'BEGIN { printf "%.0f\n", var }')
+
+cat <<EOL > "$gnuplot_script"
+set terminal pdf
+set output "plots/positivity_${scheme}_t_${tmax}.pdf"
+set size square
+set xlabel "t [s]"
+set ylabel "y_{${scheme}}(t)"
+set xrange [0:${tmax}]
+set grid
+set yrange [-3:4]
+plot 'results/${scheme}/testPositivity_${scheme}_h_${hs[0]}_N_${N0}.dat' using 1:2 title 'h = ${hs[0]}',\\
+EOL
+
+for ((i=1;i<"${#hs[@]}"; i++)); do
+  h="${hs[$i]}"
+  Nf=$(echo "scale=1; $tmax / $h" | bc) 
+  N=$(awk -v var="$Nf" 'BEGIN { printf "%.0f\n", var }')
+  data_file="results/${scheme}/testPositivity_${scheme}_h_${h}_N_${N}.dat"
+  echo "'$data_file' using 1:2 title 'h = $h',\\" >> $gnuplot_script
+done
+
+# Run Gnuplot with the generated script
+gnuplot "$gnuplot_script"
+
