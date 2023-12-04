@@ -1,7 +1,12 @@
 struct butcherTableau{
     long unsigned int s; //number of stages
+    std::string name;
     std::vector<double> b;
     std::vector<double> A;
+  
+    butcherTableau()
+      : s(1), name("default"), b({1.0}), A({0.0}) {}
+
 };
 
 #include <functional>
@@ -9,11 +14,13 @@ struct butcherTableau{
 
 #define id(eps,sig) (eps-1)*(eps-2)/2+(sig-1)
 
-void fillMethod(long unsigned int ns, butcherTableau &method, std::vector<double> b, std::vector<double> A)
+void fillMethod(long unsigned int ns, butcherTableau &method, std::vector<double> b, std::vector<double> A, std::string name)
 {
     method.s = ns;
     method.b.resize(ns);
     method.A.resize(ns*(ns-1)/2);
+
+    method.name = name;
 
     method.b = b;
     method.A = A;
@@ -32,18 +39,22 @@ butcherTableau paramRK2(double theta)
     butcherTableau method;
     std::vector<double> b = {1-theta,theta};
     std::vector<double> A = {1.0/(2*theta)};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"default");
     return method;
 }
 
 butcherTableau heunRK2(void)
 {
-    return paramRK2(0.5);
+    butcherTableau method = paramRK2(0.5);
+    method.name = "Heun RK2";
+    return method;
 }
 
 butcherTableau stdRK2(void)
 {
-    return paramRK2(1.0);
+    butcherTableau method = paramRK2(1.0);
+    method.name = "Standard RK2";
+    return method;
 }
 
 butcherTableau paramEuler(void)
@@ -52,7 +63,7 @@ butcherTableau paramEuler(void)
     butcherTableau method;
     std::vector<double> b = {1.0};
     std::vector<double> A = {0.0};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"paramEuler");
     return method;
 }
 
@@ -62,7 +73,7 @@ butcherTableau stdRK3(void)
     butcherTableau method;
     std::vector<double> A = {0.5,-1.0,2.0};
     std::vector<double> b = {1./6.0,2./3.0,1./6.0};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"Standard RK3");
     return method;
 }
 
@@ -72,7 +83,7 @@ butcherTableau wrayRK3(void)
     butcherTableau method;
     std::vector<double> b = {0.25,0.0,0.75};
     std::vector<double> A = {8./15.0,0.25,5./12.0};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A, "Wray RK3");
     return method;
 }
 
@@ -80,9 +91,39 @@ butcherTableau nystromRK3(void)
 {
     long unsigned int ns=3;
     butcherTableau method;
-    std::vector<double> b = {0.25,3.0/8.0,3./8.0};
-    std::vector<double> A = {1./3.0,0.0,2./3.0};
-    fillMethod(ns,method,b,A);
+    std::vector<double> b = {0.25,3.0/8.0,3.0/8.0};
+    std::vector<double> A = {2.0/3.0,0.0,2.0/3.0};
+    fillMethod(ns,method,b,A,"Nystrom RK3");
+    return method;
+}
+
+butcherTableau SSPRK3(void)
+{
+    long unsigned int ns=3;
+    butcherTableau method;
+    std::vector<double> b = {1./6.0,1./6.0,2.0/3.0};
+    std::vector<double> A = {1.0,0.25,0.25};
+    fillMethod(ns,method,b,A,"Ralston RK3");
+    return method;
+}
+
+butcherTableau ralstonRK3(void)
+{
+    long unsigned int ns=3;
+    butcherTableau method;
+    std::vector<double> b = {2./9.0,1./3.0,4.0/9.0};
+    std::vector<double> A = {0.5,0.0,2.0/3.0};
+    fillMethod(ns,method,b,A,"Ralston RK3");
+    return method;
+}
+
+butcherTableau kuntzmannRK3(void)
+{
+    long unsigned int ns=3;
+    butcherTableau method;
+    std::vector<double> b = {0.2071768,0.3585646,0.4342585};
+    std::vector<double> A = {0.5658162,-0.0581020,0.8256939};
+    fillMethod(ns,method,b,A,"Kuntzmann RK3");
     return method;
 }
 
@@ -92,7 +133,7 @@ butcherTableau heunRK3(void)
     butcherTableau method;
     std::vector<double> b = {0.25,0.0,0.75};
     std::vector<double> A = {1./3.0,0,2./3.0};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"Heun RK3");
     return method;
 }
 
@@ -108,7 +149,7 @@ butcherTableau genRK3(double x, double y)
     double b2 = (1/x)*(0.5-(a31+y)*b3);
     double b1 = 1-b2-b3;
     std::vector<double> b = {b1,b2,b3};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A, "Generic RK3");
     return method;
 }
 
@@ -129,7 +170,7 @@ butcherTableau ps3p5q(double c3)
     double b3 = -b1/(2*c3-1);
     double b4 = b1*(4*c3-3);
     std::vector<double> b = {b1,b2,b3,b4};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"ps3p5q("+std::to_string(c3)+")");
     return method;
 }
 
@@ -139,7 +180,7 @@ butcherTableau stdRK4(void)
     butcherTableau method;
     std::vector<double> A = {0.5,0.0,0.5,0.0,0.0,1.0};
     std::vector<double> b = {1./6.0,1./3.0,1./3.0,1./6.0};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"Standard RK4");
     return method;
 }
 
@@ -149,7 +190,27 @@ butcherTableau varRK4(void)
     butcherTableau method;
     std::vector<double> A = {1/3.0,-1/3.0,1.0,1.0,-1.0,1.0};
     std::vector<double> b = {1./8.,3./8.,3./8.,1./8.};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"Kutta RK4");
+    return method;
+}
+
+butcherTableau gillRK4(void)
+{
+    long unsigned int ns=4;
+    butcherTableau method;
+    std::vector<double> A = {0.5,(sqrt(2)-1)/2.0,(2-sqrt(2))/2.0,0.0,-sqrt(2)/2.0,(1+sqrt(2))/2};
+    std::vector<double> b = {1./6.,(2-sqrt(2))/6.,(2+sqrt(2))/6.,1./6.};
+    fillMethod(ns,method,b,A,"Gill RK4");
+    return method;
+}
+
+butcherTableau kuntzmannRK4(void)
+{
+    long unsigned int ns=4;
+    butcherTableau method;
+    std::vector<double> A = {88/220.0,-33/220.0,165/220.0,95/220.0,-75/220.0,200/220.0};
+    std::vector<double> b = {55./360.,125./360.,125./360.,55./360.};
+    fillMethod(ns,method,b,A,"Kuntzmann RK4");
     return method;
 }
 
@@ -180,7 +241,7 @@ butcherTableau ps4p7q(void)
     double b5=b2;
     double b6=b1;
     std::vector<double> b = {b1,b2,b3,b4,b5,b6};
-    fillMethod(ns,method,b,A);
+    fillMethod(ns,method,b,A,"ps4p7q");
     return method;
 }
 
@@ -194,9 +255,15 @@ std::map<std::string, FunctionTypeVoid> functionMapVoid = {
   {"paramEuler",paramEuler},
   {"stdRK3",stdRK3},
   {"wrayRK3",wrayRK3},
+  {"nystromRK3",nystromRK3},
+  {"ralstonRK3",ralstonRK3},
+  {"SSPRK3",SSPRK3},
+  {"kuntzmannRK3",kuntzmannRK3},
   {"heunRK3",heunRK3},
   {"stdRK4",stdRK4},
   {"varRK4",varRK4},
+  {"gillRK4",gillRK4},
+  {"kuntzmannRK4",kuntzmannRK4},
   {"ps4p7q",ps4p7q}
 };
 
@@ -233,18 +300,17 @@ butcherTableau intScheme(std::string functionName, double param1 = 0.0, double p
   return function(param1,param2);
 }
 
-std::vector<std::string> multiRK_method(tf2::Simulation &sim)
+void displayMethod(butcherTableau method)
 {
-  uint64_t Nmax = 9;
-  std::vector<std::string> pool;
-  std::string fcn_name, base_name = "RKmethod_";
-  for(uint64_t i = 1; i <= Nmax; ++i)
-  {
-    fcn_name = sim.IOParamS[base_name + std::to_string(i)];
-    if(!fcn_name.empty())
-      pool.push_back(fcn_name);
-    else
-      break;
-  }
-  return pool;
+  std::cout << "Scheme used: " << method.name << std::endl;
+  std::cout << "\tNumber of stages: " << method.s << std::endl;
+  std::cout << "\tButcher's tableau:" << std::endl;
+  std::cout << "\t\t b: ( ";
+  for (const auto &element: method.b)
+    std::cout << element << " ";
+  std::cout << ")" << std::endl;
+  std:: cout << "\t\t A: ( ";
+  for (const auto &element :method.A)
+    std::cout << element << " ";
+  std::cout << ")" << std::endl;
 }
