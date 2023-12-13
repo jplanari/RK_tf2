@@ -1,6 +1,6 @@
 #!/bin/bash
 
-hs=("0.8" "1.8" "2.3" "2.4" "2.5" "2.75")
+hs=( "0.8" "1.2" "1.8" "2.3" "2.6")
 total_hs="${#hs[@]}"
 scheme=$1
 tmax=$2
@@ -27,7 +27,7 @@ g++ -O3 test.cpp -o testPositivity
 for h in "${hs[@]}"; do
   Nf=$(echo "scale=1; $tmax / $h" | bc) 
   N=$(awk -v var="$Nf" 'BEGIN { printf "%.0f\n", var }')
-  ./testPositivity $scheme $h $N $casename
+  ./testPositivity $scheme $h $N $casename 60
 done
 
 gnuplot_script="${casename}/results/${scheme}/plot_script_$scheme.gp"
@@ -39,10 +39,15 @@ cat <<EOL > "$gnuplot_script"
 set terminal pdfcairo enhanced color size 5,5
 set output "${casename}/plots/positivity_${scheme}_t_${tmax}.pdf"
 set size square
-set xlabel "t [s]"
-set ylabel "y_{${scheme}}(t)"
+set xlabel "t [s]" font ',25'
+set ylabel "y_{${scheme}}(t)" font ',25'
 set xrange [0:${tmax}]
-set yrange [-2:2]
+set yrange [-1:1]
+set key font ',25'
+
+set xtics font ',20'
+set ytics font ',20'
+
 set grid
 plot '${casename}/results/${scheme}/testPositivity_${scheme}_h_${hs[0]}_N_${N0}.dat' using 1:2 with linespoints title 'h = ${hs[0]}',\\
 EOL
