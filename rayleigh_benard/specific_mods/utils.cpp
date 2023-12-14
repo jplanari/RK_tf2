@@ -25,8 +25,10 @@ TF_Func void init_props(tf2::Simulation &sim)
 
     kinVisc = sqrt(Pr/Ra);
     lambda = 1/sqrt(Pr*Ra);
+    
+    sim.IOParamD["_MaxTime"] = 100;
 
-    setup_cfl(sim); 
+    //setup_cfl(sim); 
 
     tf2::info("init_props completed.\n");
 }

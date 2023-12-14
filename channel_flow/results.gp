@@ -11,14 +11,12 @@ set xrange [0.5:180]
 set yrange [0.5:50]
 
 set grid
-set logscale xy
+set logscale x
 
 set multiplot
 
-plot "results/profile_noModel_cells_64.dat" using 2:3 title "Re = 180"
-
-replot "results/profile_noModel_cells_64.dat" using 2:2 with lines title "u^+=y^"
-
-replot "results/profile_noModel_cells_64.dat" using 2:(5.5+2.5*log($2)) with lines title "Log law"
+plot ARG1 using 2:3 title "Re = 180"
+replot x with lines title "u^+=y^+"
+replot 5.5+2.5*log(x) with lines title "Log law"
 
 unset multiplot
