@@ -3,7 +3,20 @@
 The present code is intended to be used with the Heat and Mass Transfer
 Technological Centre (CTTC) in-house code TermoFluids Algebraic (TFA), in which
 a general implementation for the numerical time integration of the
-Navier-Stokes equations is performed by means of the set Runge-Kutta schemes.
+Navier-Stokes equations is performed by means of the set Runge-Kutta schemes,
+following the paper "Accuracy analysis of explicit Runge-Kutta methods applied
+to the incompressible Navier-Stokes equations" by B. Sanderse, and B. Koren.
+For a description of the method, please refer to this paper.
+
+## Authors
+
+The main structure of the code has been developed by Josep Plana-Riu, of the
+Heat and Mass Transfer Technological Centre (CTTC), C/ Colom 11, 08222
+Terrassa, Spain; which includes the implementation and validation of the
+Runge-Kutta schemes in the main structure of the in-house code, mainly
+implemented by Guillem Colomer, of CTTC.
+
+## Repository structure
 
 The repository is organized as follows. The 'tests' directory contains the MMS
 simulations ran to verify the implementation of the Runge-Kutta as well as some
