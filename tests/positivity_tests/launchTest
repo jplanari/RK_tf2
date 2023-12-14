@@ -1,0 +1,13 @@
+#!/bin/bash
+
+schemes=("paramEuler" "heunRK2" "stdRK2" "stdRK3" "wrayRK3" "nystromRK3"
+"ralstonRK3" "SSPRK3" "kuntzmannRK3" "heunRK3" "stdRK4" "varRK4" "gillRK4"
+"kuntzmannRK4" "ps4p7q")
+
+tmax=15
+casename=$1
+
+for scheme in "${schemes[@]}"; do
+  ./testScheme $scheme $tmax $casename
+  echo "Positivity test on ${scheme} completed."
+done
