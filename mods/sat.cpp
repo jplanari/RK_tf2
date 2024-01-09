@@ -5,6 +5,7 @@
 #include "fsm_rk/butcherTableaux.h"
 #include "sat/stability.h"
 #include "sat/eigenbounds.h"
+#include "fsm_rk/multiRK.h"
 
 void computeDT(tf2::Simulation &sim)
 {

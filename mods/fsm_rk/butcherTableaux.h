@@ -3,10 +3,6 @@ struct butcherTableau{
     std::string name;
     std::vector<double> b;
     std::vector<double> A;
-  
-    butcherTableau()
-      : s(1), name("default"), b({1.0}), A({0.0}) {}
-
 };
 
 #include <functional>
