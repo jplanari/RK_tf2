@@ -54,8 +54,23 @@ void computeDT_efficiency(tf2::Simulation &sim)
       sim.IOParamI["_schEff"] = idd; //idea is to remove this option, kept now just to check if everything works fine
       sim.IOParamS["RKname"] = pool.at(idd);
       sim.IOParamD["_TimeStep"] = sim.IOParamD["RKfct"]*hh;
-
     }
+
+    if(sim.IOParamS["energy"] == "yes"){
+      double ev_i_T = ev_i/sim.IOParamD["Pr"];
+      double ev_norm_T = sqrt(ev_r*ev_r+ev_i_T*ev_i_T);
+      butcherTableau energyTab;
+      if(sim.IOParamS["RKmethod"] == "efficiency"){
+        std::vector<std::string> pool = multiRK_method(sim);
+        energyTab = intScheme(pool.at(sim.IOParamI["_schEff"]));
+      }
+      else energyTab = intScheme(sim.IOParamS["RKmethod"]);
+  
+      double phi_T = M_PI-atan(ev_i_T/ev_r);
+  
+      sim.IOParamD["_TimeStep"] = std::min(sim.IOParamD["_TimeStep"],sim.IOParamD["RKfct"]*stabilityRegion(phi_T,intScheme(sim.IOParamS["RKmethod"]))/ev_norm_T);
+    }
+
 }
 
 TF_Func void SetUp_SAT_Gershgorin_efficiency(tf2::Simulation &sim)
