@@ -364,8 +364,8 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
     auto &convy0 = tf2::getOrCreateField(sim,"convy_0",upx);
     auto &convz0 = tf2::getOrCreateField(sim,"convz_0",upx);
 
-    auto &diffT = tf2::getOrCreateField(sim,"diffx_0",upx);
-    auto &convT = tf2::getOrCreateField(sim,"convx_0",upx);
+    auto &diffT = tf2::getOrCreateField(sim,"diffT",upx);
+    auto &convT = tf2::getOrCreateField(sim,"convT",upx);
     auto &T0 = tf2::getOrCreateField(sim,"T_0",T);
 
     tf2::oper_prod(diffx0,diffx0,0.0);
@@ -444,6 +444,7 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
       auto &Ti = tf2::getOrCreateField(sim,"T_"+std::to_string(i),T0);
 
       Trk.at(i) = &Ti;
+      tf2::oper_prod(Ti,Ti,0.0);
       tf2::oper_prod(ID_CN, Tc, Ti);
 
       auto &convxi = tf2::getOrCreateField(sim,"convx_"+std::to_string(i),upx);
