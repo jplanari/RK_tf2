@@ -43,4 +43,19 @@ void pRHS(tf2::Field &pS, tf2::Field &ux, tf2::Field &uy, tf2::Field &uz, tf2::S
     tf2::oper_prod(Omega, pS, -1.0);
 }
 
+void ID_CN_bocos(tf2::Field &phiC, tf2::Field &phiN, std::string fieldName, tf2::Simulation &sim)
+{
+  std::string bndsrcName = fieldName + "_BndSrc";
+  std::string bndapplyName = fieldName + "_BndApply_NN";
 
+  auto &aux = TF_getTmpField(sim, phiN);
+  auto &phi_bnd = tf2::getField(sim, bndsrcName);
+  auto &MB = tf2::getMatrix(sim, bndapplyName);
+  auto &cm = tf2::meshNodeCellMask(sim);
+  auto &ID_CN = tf2::getMatrix(sim, "Id_CN");
+  
+  tf2::oper_prod(ID_CN, phiC, aux);
+  tf2::oper_copy(phi_bnd, phiN);
+  tf2::oper_fmadd(cm, aux, phiN, 1.0, 1.0);
+  tf2::oper_prod(MB, aux, phiN, 1.0, 1.0);
+}

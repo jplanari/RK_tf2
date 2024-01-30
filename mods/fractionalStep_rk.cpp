@@ -201,9 +201,9 @@ TF_Func bool RKiteration(tf2::Simulation &sim)
       projection(upz,p,GZ,IFC,sim);
       
    // Map the velocity to the nodes.
-      tf2::oper_prod(ID_CN, upx, ux);
-      tf2::oper_prod(ID_CN, upy, uy);
-      tf2::oper_prod(ID_CN, upz, uz);
+      ID_CN_bocos(upx, ux, "ux_N", sim);
+      ID_CN_bocos(upy, uy, "uy_N", sim);
+      ID_CN_bocos(upz, uz, "uz_N", sim);
 
       //FINAL STAGE
  
@@ -426,9 +426,9 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
       projection(upz,p,GZ,IFC,sim);
       
    // Map the velocity to the nodes.
-      tf2::oper_prod(ID_CN, upx, ux);
-      tf2::oper_prod(ID_CN, upy, uy);
-      tf2::oper_prod(ID_CN, upz, uz);
+      ID_CN_bocos(upx, ux, "ux_N", sim);
+      ID_CN_bocos(upy, uy, "uy_N", sim);
+      ID_CN_bocos(upz, uz, "uz_N", sim);
 
       //ENERGY EQUATION
       
@@ -445,7 +445,7 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
 
       Trk.at(i) = &Ti;
       tf2::oper_prod(Ti,Ti,0.0);
-      tf2::oper_prod(ID_CN, Tc, Ti);
+      ID_CN_bocos(Tc,Ti,"T_"+std::to_string(i),sim);
 
       auto &convxi = tf2::getOrCreateField(sim,"convx_"+std::to_string(i),upx);
       auto &convyi = tf2::getOrCreateField(sim,"convy_"+std::to_string(i),upx);
