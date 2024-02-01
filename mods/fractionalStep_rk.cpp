@@ -445,7 +445,7 @@ TF_Func bool RKiteration_energy(tf2::Simulation &sim)
 
       Trk.at(i) = &Ti;
       tf2::oper_prod(Ti,Ti,0.0);
-      ID_CN_bocos(Tc,Ti,"T_"+std::to_string(i),sim);
+      ID_CN_bocos(Tc,Ti,"T_N",sim);
 
       auto &convxi = tf2::getOrCreateField(sim,"convx_"+std::to_string(i),upx);
       auto &convyi = tf2::getOrCreateField(sim,"convy_"+std::to_string(i),upx);
