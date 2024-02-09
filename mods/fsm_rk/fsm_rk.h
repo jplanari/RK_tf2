@@ -51,7 +51,7 @@ void ID_CN_bocos(tf2::Field &phiC, tf2::Field &phiN, std::string fieldName, tf2:
   auto &aux = TF_getTmpField(sim, phiN);
   auto &phi_bnd = tf2::getField(sim, bndsrcName);
   auto &MB = tf2::getMatrix(sim, bndapplyName);
-  auto &cm = tf2::meshNodeCellMask(sim);
+  auto &cm = tf2::meshNodeCellMask(sim, phiN.dim);
   auto &ID_CN = tf2::getMatrix(sim, "Id_CN");
   
   tf2::oper_prod(ID_CN, phiC, aux);

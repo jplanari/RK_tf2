@@ -3,18 +3,6 @@
 
 #include <vector>
 
-void setup_cfl(tf2::Simulation &sim)
-{
-    double &DX = sim.IOParamD["dx"];
-    auto &omega = tf2::getField(sim, "Omega_C");
-    double v = tf2::oper_min(omega)[0];
-    DX = tf2::allReduce(pow(v, 1.0/3.0), MPI_MIN);
-    const double kinVisc = sim.IOParamD["kinVisc"];
-    double &tVisc = sim.IOParamD["tVisc"];
-    tVisc = 0.2*DX*DX/kinVisc;
-    sim.IOParamD["_TimeStep"] = tVisc;
-}
-
 TF_Func void init_props(tf2::Simulation &sim)
 {
     double Ra = sim.IOParamD["Ra"]; //Rayleigh
@@ -26,11 +14,51 @@ TF_Func void init_props(tf2::Simulation &sim)
     kinVisc = sqrt(Pr/Ra);
     lambda = 1/sqrt(Pr*Ra);
     
+
+    tf2::info("TAVG_start=%d\n",sim.IOParamI["_TAVG_Start"]);
+    
+    tf2::info("pre: max iters=%d\n",sim.cfgRT.maxIters);    
+    sim.cfgRT.maxIters = sim.IOParamI["_TAVG_Start"] + (sim.cfgRT.maxIters - sim.IOParamI["_TAVG_Start"])/sim.IOParamI["nSims"];
+    tf2::info("post: max iters=%d\n",sim.cfgRT.maxIters);    
+
     sim.IOParamD["_MaxTime"] = 100;
 
-    //setup_cfl(sim); 
+    if(sim.IOParamI["nSims"] > 1)
+      tf2::info("Parallel-in-time, with %d rhs. Maximum number of iterations: %d\n",sim.IOParamI["nSims"],sim.cfgRT.maxIters);
 
     tf2::info("init_props completed.\n");
+}
+
+double my_rand0(double)
+{
+    return (1e-1-2e-1*drand48());
+}
+
+TF_Func void init_fields(tf2::Simulation &sim)
+{
+    srand48(tf2::mpiRank());
+    auto &ux = tf2::getField(sim, "ux_N");
+    auto &uy = tf2::getField(sim, "uy_N");
+    auto &uz = tf2::getField(sim, "uz_N");
+
+    // Since we are passing 'my_rand0' as the argument to 'oper_apply', and
+    // 'my_rand0' is a function that maps a double into a double (as opposed to
+    // mapping a tf2::Vn into a tf2::Vn), it will work irrespective of how many
+    // components the field has: it will be applied for every component of
+    // every element.
+    tf2::oper_apply(ux, my_rand0);
+    tf2::oper_apply(uy, my_rand0);
+    tf2::oper_apply(uz, my_rand0);
+
+    auto &INF = tf2::getMatrix(sim, "Interp_NF");
+    auto &ufx = tf2::getField(sim, "ux_F");
+    auto &ufy = tf2::getField(sim, "uy_F");
+    auto &ufz = tf2::getField(sim, "uz_F");
+
+    tf2::oper_prod(INF,ux,ufx);
+    tf2::oper_prod(INF,uy,ufy);
+    tf2::oper_prod(INF,uz,ufz);
+
 }
 
 TF_Func void init_omega(tf2::Simulation &sim)
@@ -58,33 +86,6 @@ TF_Func void init_omega(tf2::Simulation &sim)
     tf2::oper_setData(omega, buffer.data());
     tf2::info("init_omega completed.\n");
 }
-
-TF_Func bool update_DT_cfl(tf2::Simulation &sim) 
-{
-	auto &ux  = tf2::getField(sim, "ux_N");
-	auto &uy  = tf2::getField(sim, "uy_N");
-	auto &uz  = tf2::getField(sim, "uz_N");
-	auto &mod = TF_getTmpField(sim, ux);
-	auto &tmp = TF_getTmpField(sim, ux);
-
-	tf2::oper_axpy(ux,mod,1.0,0.0);
-	tf2::oper_prod(ux,mod,1.0);
-	
-	tf2::oper_axpy(uy,tmp,1.0,0.0);
-	tf2::oper_prod(uy,tmp,1.0);
-	tf2::oper_axpy(tmp,mod,1.0,1.0);
-
-	tf2::oper_axpy(uz,tmp,1.0,0.0);
-	tf2::oper_prod(uz,tmp,1.0);
-	tf2::oper_axpy(tmp,mod,1.0,1.0);
-	
-	const double uref = sqrt(tf2::max(tf2::oper_max(mod)));
-	const double cfl = sim.IOParamD["cfl"];
-	const double tVisc = sim.IOParamD["tVisc"];
-	const double DX = sim.IOParamD["dx"]; 
-	sim.IOParamD["_TimeStep"] = cfl*std::min(0.35*DX/uref, tVisc);
-	return tf2::Iter_Continue;
-} 
 
 TF_Func bool monitor(tf2::Simulation &sim)
 {
